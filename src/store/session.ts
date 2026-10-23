@@ -3,7 +3,7 @@ import type { Language } from '../../shared/types';
 import { newId } from '../lib/ids';
 import { KEYS, readString, writeString } from '../lib/storage';
 import { clearSession, hasContent, loadSession, saveSession } from './persist';
-import type { Gap, Interim, Line, Session, Speaker } from './types';
+import type { ClientFlag, Gap, Interim, Line, Session, Speaker, Summary } from './types';
 
 export type ListenStatus = 'idle' | 'starting' | 'listening' | 'reconnecting' | 'error';
 
@@ -14,6 +14,25 @@ type Runtime = {
   listenError: string | null;
   /** A saved session found at load, waiting for the user's "Resume meeting?" answer. */
   pendingResume: Session | null;
+  analysis: AnalysisRuntime;
+};
+
+export type AnalysisError = { code: string; message: string };
+
+export type AnalysisRuntime = {
+  running: boolean;
+  error: AnalysisError | null;
+  /** epoch ms of the last successful update */
+  updatedAt: number | null;
+  maxCalls: number;
+  consecutiveErrors: number;
+  retryAt: number;
+  /** set by "Analyze now", consumed by the runner */
+  manualRequested: boolean;
+  /** ids of flags added by the last update, for the highlight and the tab badge */
+  newFlagIds: string[];
+  /** new flags not yet seen on the Watch list tab (narrow layout) */
+  unseenFlags: number;
 };
 
 type Actions = {
@@ -27,6 +46,24 @@ type Actions = {
   setInterim: (i: Interim) => void;
   addGap: (g: Gap) => void;
   setListen: (s: ListenStatus, error?: string | null) => void;
+  setAnalysis: (patch: Partial<AnalysisRuntime>) => void;
+  /** A call starts: counts it and remembers which lines it covers. */
+  beginAnalysis: (upToLineIndex: number) => void;
+  /** A call failed: the lines it covered count as new again, and automatic calls wait. */
+  failAnalysis: (r: {
+    sessionId: string;
+    prevIndex: number;
+    error: AnalysisError | null;
+    retryAt: number;
+  }) => void;
+  /** Applies a successful result, if it belongs to the current session. */
+  applyAnalysis: (r: {
+    sessionId: string;
+    upToLineIndex: number;
+    summary: Summary;
+    flags: ClientFlag[];
+    newFlagIds: string[];
+  }) => void;
 };
 
 export type SessionState = { session: Session } & Runtime & Actions;
@@ -56,6 +93,20 @@ function speakerIdFor(label: string): string {
   return 'm-' + label.trim().toLowerCase().replace(/\s+/g, '-');
 }
 
+export const DEFAULT_MAX_CALLS = 150;
+
+const freshAnalysis = (maxCalls = DEFAULT_MAX_CALLS): AnalysisRuntime => ({
+  running: false,
+  error: null,
+  updatedAt: null,
+  maxCalls,
+  consecutiveErrors: 0,
+  retryAt: 0,
+  manualRequested: false,
+  newFlagIds: [],
+  unseenFlags: 0,
+});
+
 const saved = loadSession();
 const resumable = hasContent(saved) ? saved : null;
 
@@ -65,6 +116,7 @@ export const useSession = create<SessionState>((set, get) => ({
   listen: 'idle',
   listenError: null,
   pendingResume: resumable,
+  analysis: freshAnalysis(),
 
   resume: () => {
     const p = get().pendingResume;
@@ -73,7 +125,12 @@ export const useSession = create<SessionState>((set, get) => ({
   startNew: () => {
     clearSession();
     const language = get().session.language;
-    set({ session: emptySession(language), pendingResume: null, interim: null });
+    set((st) => ({
+      session: emptySession(language),
+      pendingResume: null,
+      interim: null,
+      analysis: freshAnalysis(st.analysis.maxCalls),
+    }));
   },
   setLanguage: (language) => {
     writeString(KEYS.language, language);
@@ -111,6 +168,50 @@ export const useSession = create<SessionState>((set, get) => ({
   setInterim: (interim) => set({ interim }),
   addGap: (g) => set((st) => ({ session: { ...st.session, gaps: [...st.session.gaps, g] } })),
   setListen: (listen, error = null) => set({ listen, listenError: error }),
+  setAnalysis: (patch) => set((st) => ({ analysis: { ...st.analysis, ...patch } })),
+  beginAnalysis: (upToLineIndex) =>
+    set((st) => ({
+      session: {
+        ...st.session,
+        analysisCalls: st.session.analysisCalls + 1,
+        lastAnalysisAt: Date.now(),
+        analyzedUpToLineIndex: upToLineIndex,
+      },
+      analysis: { ...st.analysis, running: true, manualRequested: false },
+    })),
+  failAnalysis: ({ sessionId, prevIndex, error, retryAt }) =>
+    set((st) => {
+      if (st.session.id !== sessionId) return { analysis: { ...st.analysis, running: false } };
+      return {
+        session: { ...st.session, analyzedUpToLineIndex: prevIndex },
+        analysis: {
+          ...st.analysis,
+          running: false,
+          error,
+          retryAt,
+          consecutiveErrors: error
+            ? st.analysis.consecutiveErrors + 1
+            : st.analysis.consecutiveErrors,
+        },
+      };
+    }),
+  applyAnalysis: ({ sessionId, summary, flags, newFlagIds }) =>
+    set((st) => {
+      if (st.session.id !== sessionId) return {};
+      return {
+        session: { ...st.session, summary, flags },
+        analysis: {
+          ...st.analysis,
+          running: false,
+          error: null,
+          updatedAt: Date.now(),
+          consecutiveErrors: 0,
+          retryAt: 0,
+          newFlagIds,
+          unseenFlags: st.analysis.unseenFlags + newFlagIds.length,
+        },
+      };
+    }),
 }));
 
 /* Persistence: debounced 2 s (docs/02 §4), flushed when the page is hidden. */
