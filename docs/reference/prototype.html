@@ -1,0 +1,342 @@
+<title>Meeting Copilot</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: three working columns — what was said, what it means, what to watch — over a thin control bar */
+:root{
+  --bg:#f3f4f7; --panel:#ffffff; --ink:#151a26; --muted:#5d6577; --line:#dfe2ea;
+  --accent:#3b4cca; --accent-soft:#e6e9fb;
+  --trap:#b45309; --trap-soft:#fdf1e2;
+  --logic:#be123c; --logic-soft:#fde8ee;
+  --question:#0e6ba8; --question-soft:#e3f1fa;
+  --display:"Bricolage Grotesque",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f121a; --panel:#171b26; --ink:#e7e9f0; --muted:#98a0b3; --line:#2a3040;
+  --accent:#8c99ff; --accent-soft:#252b4a;
+  --trap:#f5a54a; --trap-soft:#33240f;
+  --logic:#ff7a98; --logic-soft:#3a1622;
+  --question:#62b8ef; --question-soft:#112b3b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f121a; --panel:#171b26; --ink:#e7e9f0; --muted:#98a0b3; --line:#2a3040;
+  --accent:#8c99ff; --accent-soft:#252b4a;
+  --trap:#f5a54a; --trap-soft:#33240f;
+  --logic:#ff7a98; --logic-soft:#3a1622;
+  --question:#62b8ef; --question-soft:#112b3b; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px;box-sizing:border-box}
+*{box-sizing:border-box}
+button{font:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:12px}
+.brand{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+.live{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.live.on{background:var(--logic);animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.live.on{animation:none}}
+.status{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:8px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--panel);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+.toggle{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr) minmax(0,1fr);gap:12px;height:calc(100% - 56px);min-height:520px}
+@media (max-width:980px){.grid{grid-template-columns:1fr;height:auto}}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-width:0;min-height:0}
+@media (max-width:980px){.col{max-height:none}.scroll{max-height:60vh}}
+.colhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:12px 14px 10px;border-bottom:1px solid var(--line)}
+.colhead h2{font-family:var(--display);font-weight:500;font-size:16px;margin:0}
+.count{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.scroll{overflow-y:auto;padding:12px 14px;flex:1;min-height:0}
+
+.line{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;padding:5px 0}
+.ts{font-family:var(--mono);font-size:11px;color:var(--muted);padding-top:2px;font-variant-numeric:tabular-nums}
+.spk{font-weight:600;margin-right:4px}
+.line.new .txt{background:var(--accent-soft);border-radius:4px}
+.feed{border-top:1px solid var(--line);padding:10px 14px;display:flex;flex-direction:column;gap:8px}
+.feed textarea{width:100%;min-height:70px;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--ink);font:inherit}
+.feedrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hint{font-size:12px;color:var(--muted)}
+
+.topic{padding:10px 0;border-bottom:1px dashed var(--line)}
+.topic:last-child{border-bottom:0}
+.topic h3{font-family:var(--display);font-weight:500;font-size:15px;margin:0 0 4px}
+.topic ul{margin:0;padding-left:18px}
+.topic li{margin:2px 0}
+.tag{display:inline-block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;border-radius:4px;margin-right:4px;vertical-align:1px}
+.tag.dec{background:var(--accent-soft);color:var(--accent)}
+.tag.act{background:var(--question-soft);color:var(--question)}
+.tag.open{background:var(--trap-soft);color:var(--trap)}
+.tldr{background:var(--accent-soft);border-radius:8px;padding:10px 12px;margin-bottom:6px}
+.tldr b{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:2px}
+
+.filters{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px 0}
+.chip{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:3px 10px;font-size:12px}
+.chip[aria-pressed="true"]{color:var(--ink);border-color:var(--ink)}
+.flag{border-left:4px solid var(--c);background:var(--cs);border-radius:0 8px 8px 0;padding:9px 11px;margin-bottom:10px}
+.flag.trap{--c:var(--trap);--cs:var(--trap-soft)}
+.flag.logic{--c:var(--logic);--cs:var(--logic-soft)}
+.flag.question{--c:var(--question);--cs:var(--question-soft)}
+.flag .kind{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--c);font-weight:500}
+.flag .title{font-weight:600;margin:2px 0 4px}
+.flag q{display:block;font-size:13px;color:var(--muted);border-left:2px solid var(--line);padding-left:8px;margin:4px 0;quotes:"“" "”"}
+.flag .why{font-size:13px}
+.flag .ask{font-size:13px;margin-top:5px}
+.flag .ask b{color:var(--c)}
+.flag .who{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.empty{color:var(--muted);font-size:13px;padding:14px 4px}
+.example{font-family:var(--mono);font-size:11px;color:var(--trap);background:var(--trap-soft);padding:2px 8px;border-radius:4px}
+.err{color:var(--logic);font-size:12px}
+</style>
+
+<div class="bar">
+  <div class="brand"><span id="liveDot" class="live" aria-hidden="true"></span>Meeting Copilot</div>
+  <span id="status" class="status">Ready</span>
+  <span id="exampleBadge" class="example">Example meeting loaded</span>
+  <span class="spacer"></span>
+  <label class="toggle"><input type="checkbox" id="auto" checked> Analyze after each add</label>
+  <button class="btn primary" id="analyzeBtn">Analyze now</button>
+  <button class="btn" id="stopBtn" hidden>Stop</button>
+  <button class="btn" id="copyBtn">Copy notes</button>
+  <button class="btn" id="clearBtn">New meeting</button>
+</div>
+
+<div class="grid">
+  <section class="col" aria-label="Transcript">
+    <div class="colhead"><h2>Live transcript</h2><span class="count" id="lineCount"></span></div>
+    <div class="scroll" id="transcript"></div>
+    <div class="feed">
+      <textarea id="feedBox" placeholder="Paste the latest captions here (Teams / Zoom / Meet live captions), or type what was said.&#10;Use “Name: text” per line to keep speakers."></textarea>
+      <div class="feedrow">
+        <button class="btn primary" id="addBtn">Add to transcript</button>
+        <span class="hint">Ctrl/Cmd + Enter adds. Only new lines are needed each time.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="col" aria-label="Summary">
+    <div class="colhead"><h2>Running summary</h2><span class="count" id="sumCount"></span></div>
+    <div class="scroll" id="summary"></div>
+  </section>
+
+  <section class="col" aria-label="Watch list">
+    <div class="colhead"><h2>Watch list</h2><span class="count" id="flagCount"></span></div>
+    <div class="filters" role="group" aria-label="Filter">
+      <button class="chip" data-f="all" aria-pressed="true">All</button>
+      <button class="chip" data-f="trap" aria-pressed="false">Traps</button>
+      <button class="chip" data-f="logic" aria-pressed="false">Logic errors</button>
+      <button class="chip" data-f="question" aria-pressed="false">Questions to ask</button>
+    </div>
+    <div class="scroll" id="flags"></div>
+  </section>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const EXAMPLE = {
+  lines: [
+    ["00:02","Client PM","So the plan is to go live with the new invoicing module on the 15th, same as agreed."],
+    ["00:20","Dev lead","We can do the 15th if the tax rules for Germany are frozen this week."],
+    ["00:41","Client PM","They're basically final. Legal just needs to sign off, it's a formality."],
+    ["01:05","Finance","Every customer we migrated last year was happy, so this migration will be fine too."],
+    ["01:30","Client PM","And since nobody raised concerns in UAT, we can skip the second test cycle."],
+    ["01:52","Dev lead","Only three users did UAT though, all from the UK team."],
+    ["02:10","Client PM","Let's just say testing is done and we'll fix anything after go-live."]
+  ],
+  state: {
+    tldr: "Go-live for the invoicing module is held at the 15th, but it rests on German tax rules being frozen and on a UAT that covered only UK users.",
+    topics: [
+      {topic:"Go-live date", points:["Target stays the 15th.","Dev lead ties the date to German tax rules being frozen this week."], decisions:["Keep the 15th (stated by client PM, not confirmed by dev)."], actions:[], open:["Who confirms the rules are frozen, and by when?"]},
+      {topic:"Testing", points:["UAT had 3 users, all from the UK team.","Client PM proposes skipping the second test cycle and fixing issues after go-live."], decisions:[], actions:[], open:["Do German invoices get any test coverage before go-live?"]}
+    ],
+    flags: [
+      {type:"trap", title:"Dependency stated as a formality", quote:"Legal just needs to sign off, it's a formality.", why:"The 15th depends on this sign-off. Calling it a formality removes it from the risk list without a date or owner.", ask:"When is legal sign-off expected, and what happens to the 15th if it slips?", who:"Client PM"},
+      {type:"logic", title:"Past success used as proof for a different case", quote:"Every customer we migrated last year was happy, so this migration will be fine too.", why:"Last year's migrations did not include the new invoicing module or German tax rules, so the outcome does not transfer.", ask:"What is different in this migration compared with last year's?", who:"Finance"},
+      {type:"logic", title:"Silence read as approval", quote:"Since nobody raised concerns in UAT, we can skip the second test cycle.", why:"No concerns from 3 UK users says nothing about German invoices, which nobody tested.", ask:"Which scenarios did UAT cover, and is Germany among them?", who:"Client PM"},
+      {type:"trap", title:"Scope quietly moved into post-go-live", quote:"We'll fix anything after go-live.", why:"Defects found in production on invoicing hit customers and finance directly. This shifts cost and risk without saying who carries it.", ask:"Who owns production defects in the first two weeks, and what is the rollback plan?", who:"Client PM"},
+      {type:"question", title:"Commitment without an owner", quote:"Tax rules for Germany are frozen this week.", why:"A condition was set for the date but nobody took it.", ask:"Who confirms the German rules are frozen, and by which day?", who:"Dev lead"}
+    ]
+  }
+};
+
+let lines = [], state = null, isExample = true, newFrom = -1, filter = "all";
+let sample = null, ctl = null, busy = false, pending = false, t0 = Date.now(), lastAnalyzedCount = 0;
+
+function load(){
+  lines = EXAMPLE.lines.map(([ts,spk,txt]) => ({ts,spk,txt}));
+  state = structuredClone(EXAMPLE.state);
+  lastAnalyzedCount = lines.length;
+}
+function clock(){
+  const s = Math.floor((Date.now()-t0)/1000);
+  return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+}
+
+function renderTranscript(){
+  const el = $("transcript");
+  if(!lines.length){ el.innerHTML = '<div class="empty">Nothing yet. Paste the first captions below. Speakers are kept when each line starts with “Name:”.</div>'; }
+  else el.innerHTML = lines.map((l,i)=>`<div class="line${newFrom>=0&&i>=newFrom?" new":""}"><span class="ts">${esc(l.ts)}</span><span class="txt">${l.spk?`<span class="spk">${esc(l.spk)}</span>`:""}${esc(l.txt)}</span></div>`).join("");
+  el.scrollTop = el.scrollHeight;
+  $("lineCount").textContent = lines.length ? lines.length+" lines" : "";
+}
+function list(arr, cls, label){ return (arr||[]).map(x=>`<li>${cls?`<span class="tag ${cls}">${label}</span>`:""}${esc(x)}</li>`).join(""); }
+function renderSummary(){
+  const el = $("summary");
+  if(!state || (!state.tldr && !(state.topics||[]).length)){
+    el.innerHTML = '<div class="empty">The summary builds here by topic once there is something to summarize: what was said, decisions, actions and what is still open.</div>';
+    $("sumCount").textContent = ""; return;
+  }
+  el.innerHTML = (state.tldr?`<div class="tldr"><b>So far</b>${esc(state.tldr)}</div>`:"") +
+    (state.topics||[]).map(t=>`<div class="topic"><h3>${esc(t.topic)}</h3><ul>${list(t.points)}${list(t.decisions,"dec","Decided")}${list(t.actions,"act","Action")}${list(t.open,"open","Open")}</ul></div>`).join("");
+  $("sumCount").textContent = (state.topics||[]).length+" topics";
+}
+const KIND = {trap:"Trap", logic:"Logic error", question:"Ask this"};
+function renderFlags(){
+  const el = $("flags");
+  const all = (state?.flags)||[];
+  const f = all.filter(x => filter==="all" || x.type===filter);
+  $("flagCount").textContent = all.length ? all.length+" flagged" : "";
+  if(!f.length){ el.innerHTML = '<div class="empty">'+(all.length?"Nothing in this category yet.":"Traps, logic errors and questions worth asking appear here, each with the exact words that triggered it.")+'</div>'; return; }
+  el.innerHTML = f.slice().reverse().map(x=>`<div class="flag ${KIND[x.type]?x.type:"question"}">
+    <div class="kind">${KIND[x.type]||"Note"}${x.who?` <span class="who">· ${esc(x.who)}</span>`:""}</div>
+    <div class="title">${esc(x.title)}</div>
+    ${x.quote?`<q>${esc(x.quote)}</q>`:""}
+    <div class="why">${esc(x.why)}</div>
+    ${x.ask?`<div class="ask"><b>Ask:</b> ${esc(x.ask)}</div>`:""}</div>`).join("");
+}
+function renderAll(){ renderTranscript(); renderSummary(); renderFlags(); $("exampleBadge").hidden = !isExample; }
+
+function setStatus(t, err){ const s=$("status"); s.textContent=t; s.className = err?"status err":"status"; }
+function setBusy(b){
+  busy=b; $("liveDot").classList.toggle("on",b); $("stopBtn").hidden=!b; $("analyzeBtn").disabled=b;
+}
+
+function addFeed(){
+  const raw = $("feedBox").value.trim(); if(!raw) return;
+  if(isExample){ lines=[]; state=null; isExample=false; t0=Date.now(); lastAnalyzedCount=0; }
+  newFrom = lines.length;
+  const ts = clock();
+  for(const row of raw.split(/\n+/)){
+    const r = row.trim(); if(!r) continue;
+    const m = r.match(/^([A-Za-zÀ-ž][\wÀ-ž .'-]{0,40}?)\s*[:：]\s+(.+)$/);
+    lines.push(m ? {ts, spk:m[1].trim(), txt:m[2]} : {ts, spk:"", txt:r});
+  }
+  $("feedBox").value = "";
+  renderAll();
+  if($("auto").checked) analyze();
+}
+
+function buildPrompt(){
+  let tx = lines.map(l=>`[${l.ts}] ${l.spk?l.spk+": ":""}${l.txt}`).join("\n");
+  if(tx.length>60000) tx = "…(earlier part trimmed; rely on the previous state for it)\n"+tx.slice(-60000);
+  const prev = state ? JSON.stringify(state) : "null";
+  return `You are a sharp, neutral meeting analyst watching a meeting live. You receive the transcript so far and your previous analysis. Return the UPDATED analysis of the whole meeting.
+
+Write in the same language the meeting is held in.
+
+Goals:
+1. Running summary grouped by topic. For each topic: key points said, decisions actually made (only if someone clearly agreed), action items (with owner if named), and open items. Keep each bullet short and factual. Do not invent owners or dates.
+2. A one or two sentence "tldr" of where the meeting stands now.
+3. A watch list ("flags") with three types:
+   - "trap": statements that create hidden risk or commitment: vague commitments, dependencies dismissed as formalities, scope or risk shifted quietly, deadlines without owners, numbers without a source, "we'll fix it later", agreement assumed from silence, pressure to decide now.
+   - "logic": reasoning errors: false cause, hasty generalization, silence as consent, false dilemma, circular reasoning, contradiction with something said earlier, conclusions that do not follow from the stated facts, moving goalposts.
+   - "question": the most useful questions the listener could ask next to close a gap.
+   Each flag: the exact short quote that triggered it (copied from the transcript, under 25 words), "why" in one or two plain sentences naming what is missing or wrong, "ask" = one concrete question to say out loud, "who" = speaker if known.
+   Be selective: only flag things that matter for the outcome. Keep earlier flags unless later talk resolved them (then drop them). Do not duplicate. At most 12 flags in total, newest last.
+
+Reply with only JSON in this exact shape:
+{"tldr":string,"topics":[{"topic":string,"points":[string],"decisions":[string],"actions":[string],"open":[string]}],"flags":[{"type":"trap"|"logic"|"question","title":string,"quote":string,"why":string,"ask":string,"who":string}]}
+
+PREVIOUS ANALYSIS:
+${prev}
+
+TRANSCRIPT SO FAR:
+${tx}`;
+}
+
+const COPY = {
+  not_granted:"Claude access was not allowed for this page. Reload and allow it to analyze.",
+  sampling_disabled:"Claude is not available for this account.",
+  rate_limited:"Too many requests or usage limit reached. Wait a bit, then press Analyze now.",
+  session_expired:"Sign in to Claude again, then press Analyze now.",
+  prompt_too_large:"The transcript is too long to send at once. Start a new meeting for the next part.",
+  invalid_json:"The analysis came back malformed. Press Analyze now to try again.",
+  refused:"Claude declined to analyze this text.",
+};
+
+async function analyze(){
+  if(!lines.length || isExample) { if(isExample) setStatus("Paste your own captions to analyze"); return; }
+  if(busy){ pending = true; return; }
+  if(!sample){ setStatus("Analysis is unavailable in this view", true); return; }
+  setBusy(true); setStatus("Analyzing…");
+  ctl = new AbortController();
+  const count = lines.length;
+  try{
+    const res = await sample.json(buildPrompt(), {signal:ctl.signal, cache:false});
+    if(res && typeof res==="object"){
+      state = {tldr:String(res.tldr||""), topics:Array.isArray(res.topics)?res.topics:[], flags:Array.isArray(res.flags)?res.flags:[]};
+      lastAnalyzedCount = count; newFrom = -1;
+      setStatus("Updated at "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}));
+      renderAll();
+    }
+  }catch(e){
+    if(e?.code==="cancelled") setStatus("Stopped");
+    else setStatus(COPY[e?.code] || "Analysis failed. Press Analyze now to retry.", true);
+    if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(e?.code)) { sample=null; $("analyzeBtn").disabled=true; }
+    pending=false;
+  }finally{
+    setBusy(false);
+    if(sample) $("analyzeBtn").disabled=false;
+    if(pending && lines.length>lastAnalyzedCount){ pending=false; analyze(); }
+  }
+}
+
+function notesText(){
+  if(!state) return "";
+  let s = "# Meeting notes\n\n"+(state.tldr?state.tldr+"\n\n":"");
+  for(const t of state.topics||[]){
+    s += "## "+t.topic+"\n";
+    (t.points||[]).forEach(x=>s+="- "+x+"\n");
+    (t.decisions||[]).forEach(x=>s+="- Decided: "+x+"\n");
+    (t.actions||[]).forEach(x=>s+="- Action: "+x+"\n");
+    (t.open||[]).forEach(x=>s+="- Open: "+x+"\n");
+    s+="\n";
+  }
+  if((state.flags||[]).length){
+    s += "## Watch list\n";
+    for(const f of state.flags) s += `- [${KIND[f.type]||"Note"}] ${f.title}${f.quote?` — "${f.quote}"`:""}\n  ${f.why}${f.ask?`\n  Ask: ${f.ask}`:""}\n`;
+  }
+  return s;
+}
+
+$("addBtn").onclick = addFeed;
+$("feedBox").addEventListener("keydown", e=>{ if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); addFeed(); }});
+$("analyzeBtn").onclick = ()=>analyze();
+$("stopBtn").onclick = ()=>ctl?.abort();
+$("clearBtn").onclick = ()=>{ ctl?.abort(); lines=[]; state=null; isExample=false; newFrom=-1; t0=Date.now(); lastAnalyzedCount=0; setStatus("New meeting started"); renderAll(); $("feedBox").focus(); };
+$("copyBtn").onclick = async ()=>{
+  const t = notesText(); if(!t){ setStatus("Nothing to copy yet"); return; }
+  try{ await navigator.clipboard.writeText(t); setStatus("Notes copied as Markdown"); }
+  catch{ $("feedBox").value = t; $("feedBox").select(); setStatus("Copy blocked here. The notes are selected in the box, press Ctrl/Cmd + C."); }
+};
+document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
+  filter=c.dataset.f; document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed", x===c?"true":"false")); renderFlags();
+});
+
+load(); renderAll();
+(async()=>{
+  try{ sample = window.claude ? await window.claude.use("sample") : null; }catch{ sample=null; }
+  if(!sample){ $("analyzeBtn").disabled=true; $("auto").disabled=true; setStatus("Claude analysis is unavailable in this view", true); }
+})();
+})();
+</script>
