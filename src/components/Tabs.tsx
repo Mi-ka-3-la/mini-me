@@ -1,3 +1,5 @@
+import { ListenIndicator, ListenStatusText } from './ListenControls';
+
 export type TabId = 'transcript' | 'summary' | 'watch';
 
 const TABS: { id: TabId; label: string }[] = [
@@ -30,6 +32,11 @@ export function Tabs({ active, onChange, newFlags }: Props) {
           )}
         </button>
       ))}
+      {/* The header scrolls away on phones; the listening state stays visible here. */}
+      <span className="tabs-status" aria-hidden="true">
+        <ListenIndicator secondary />
+        <ListenStatusText secondary />
+      </span>
     </div>
   );
 }

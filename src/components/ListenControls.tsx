@@ -9,7 +9,7 @@ export const LISTEN_LABEL = {
   error: 'Not listening',
 } as const;
 
-export function ListenIndicator() {
+export function ListenIndicator({ secondary = false }: { secondary?: boolean }) {
   const status = useSession((s) => s.listen);
   const on = status === 'listening';
   const warn = status === 'reconnecting' || status === 'starting';
@@ -18,17 +18,20 @@ export function ListenIndicator() {
       <span
         className={`live${on ? ' on' : ''}${warn ? ' warn' : ''}`}
         aria-hidden="true"
-        data-testid="live-dot"
+        data-testid={secondary ? undefined : 'live-dot'}
       />
-      <span className="sr-only">Status:</span>
+      {!secondary && <span className="sr-only">Status:</span>}
     </>
   );
 }
 
-export function ListenStatusText() {
+export function ListenStatusText({ secondary = false }: { secondary?: boolean }) {
   const status = useSession((s) => s.listen);
   return (
-    <span className="status" role="status" aria-live="polite">
+    <span
+      className="status"
+      {...(secondary ? {} : { role: 'status', 'aria-live': 'polite' as const })}
+    >
       {LISTEN_LABEL[status]}
     </span>
   );

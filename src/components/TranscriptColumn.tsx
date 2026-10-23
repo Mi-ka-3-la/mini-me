@@ -17,6 +17,28 @@ function interleave(lines: Line[], gaps: Gap[]): Item[] {
   return items;
 }
 
+/** Short "How to use" shown while the transcript is empty (T0.14). */
+function HowToUse() {
+  return (
+    <div className="empty" data-testid="how-to-use">
+      <b>How to use</b>
+      <ol>
+        <li>Put this device next to the laptop running the call, with the laptop on speaker.</li>
+        <li>
+          Pick the meeting language. Optionally, write in Context what you need from the meeting.
+        </li>
+        <li>Tell participants the meeting is being transcribed, then press Start listening.</li>
+        <li>
+          Watch list cards end with a question you can ask out loud. Pin what matters, dismiss what
+          does not, mark a card asked once you asked it.
+        </li>
+        <li>At the end, Copy notes. Keep this tab in front while listening.</li>
+      </ol>
+      <p>No microphone? Paste captions below. Lines like “Name: text” keep the speaker.</p>
+    </div>
+  );
+}
+
 export function TranscriptColumn({ hidden }: { hidden: boolean }) {
   const lines = useSession((s) => s.session.lines);
   const gaps = useSession((s) => s.session.gaps);
@@ -70,10 +92,7 @@ export function TranscriptColumn({ hidden }: { hidden: boolean }) {
     >
       <div className="scroll" ref={scroller} data-testid="transcript-scroll">
         {items.length === 0 && !interim?.text ? (
-          <div className="empty">
-            Nothing yet. Press <b>Start listening</b>, or paste captions below. Speakers are kept
-            when a line starts with “Name:”.
-          </div>
+          <HowToUse />
         ) : (
           items.map((it) =>
             it.kind === 'gap' ? (

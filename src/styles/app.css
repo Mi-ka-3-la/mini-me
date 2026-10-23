@@ -651,3 +651,45 @@ details.asked-section summary {
     padding: 6px 10px;
   }
 }
+
+/* Added: narrow screens. The page scrolls; the active column is about one screen tall. */
+@media (max-width: 980px) {
+  .app {
+    height: auto;
+    min-height: 100%;
+  }
+  .grid {
+    flex: none;
+  }
+  .col {
+    height: calc(100dvh - 32px);
+    min-height: 420px;
+  }
+}
+@media (max-width: 600px) {
+  .wide-only {
+    display: none;
+  }
+  .bar {
+    gap: 8px;
+  }
+}
+.setup.compact {
+  align-items: center;
+  padding: 8px 14px;
+}
+@media (max-width: 980px) {
+  .tabs {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg);
+    align-items: center;
+  }
+  .tabs .tabs-status {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+}

@@ -4,6 +4,7 @@ test('layout: three columns on desktop, tabs when narrow', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Continue without analysis' }).click();
   await expect(page.getByRole('heading', { name: 'Meeting Copilot' })).toBeVisible();
+  await expect(page.getByTestId('how-to-use')).toContainText('How to use');
   const width = page.viewportSize()?.width ?? 1280;
   const tabs = page.getByRole('tablist', { name: 'Views' });
   if (width > 980) {
