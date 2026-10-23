@@ -243,6 +243,7 @@ interface Transcriber {
 | `MAX_CALLS_PER_SESSION` | 0 | Default 150. Read by `/api/config` and enforced in the browser. |
 | `ANALYSIS_EFFORT` | 0 | `low`, `medium` (default) or `high`. Lower is faster (ADR-18). |
 | `ANALYSIS_THINKING` | 0 | `adaptive` (default) or `minimal`. `minimal` turns up-front thinking off where the model allows it (ADR-18). |
+| `RATE_LIMIT_PER_MIN` | 0 | Optional. Overrides the 30 requests/min per IP. Only the end-to-end tests set it. |
 | `ASSEMBLYAI_API_KEY` | 1 | STT token minting |
 
 ## 10. Decision records added at the Phase 0 plan check (23 Oct 2026)

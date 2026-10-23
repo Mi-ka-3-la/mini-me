@@ -13,7 +13,11 @@ export default defineConfig({
     command: 'npm run dev -- --strictPort',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
-    env: { APP_PASSCODE: 'test-passcode', MAX_CALLS_PER_SESSION: '150' },
+    env: {
+      APP_PASSCODE: 'test-passcode',
+      MAX_CALLS_PER_SESSION: '150',
+      RATE_LIMIT_PER_MIN: '1000',
+    },
   },
   projects: [
     {
