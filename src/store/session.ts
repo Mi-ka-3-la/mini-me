@@ -47,6 +47,10 @@ type Actions = {
   addGap: (g: Gap) => void;
   setListen: (s: ListenStatus, error?: string | null) => void;
   setAnalysis: (patch: Partial<AnalysisRuntime>) => void;
+  /** Pin, dismiss, mark asked, or back to active (US-04 AC4). */
+  setFlagStatus: (id: string, status: ClientFlag['status']) => void;
+  clearNewFlags: () => void;
+  markFlagsSeen: () => void;
   /** A call starts: counts it and remembers which lines it covers. */
   beginAnalysis: (upToLineIndex: number) => void;
   /** A call failed: the lines it covered count as new again, and automatic calls wait. */
@@ -169,6 +173,15 @@ export const useSession = create<SessionState>((set, get) => ({
   addGap: (g) => set((st) => ({ session: { ...st.session, gaps: [...st.session.gaps, g] } })),
   setListen: (listen, error = null) => set({ listen, listenError: error }),
   setAnalysis: (patch) => set((st) => ({ analysis: { ...st.analysis, ...patch } })),
+  setFlagStatus: (id, status) =>
+    set((st) => ({
+      session: {
+        ...st.session,
+        flags: st.session.flags.map((f) => (f.id === id ? { ...f, status } : f)),
+      },
+    })),
+  clearNewFlags: () => set((st) => ({ analysis: { ...st.analysis, newFlagIds: [] } })),
+  markFlagsSeen: () => set((st) => ({ analysis: { ...st.analysis, unseenFlags: 0 } })),
   beginAnalysis: (upToLineIndex) =>
     set((st) => ({
       session: {

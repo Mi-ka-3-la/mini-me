@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Column } from './components/Column';
 import { Tabs, type TabId } from './components/Tabs';
 import { NARROW, useMediaQuery } from './lib/useMediaQuery';
 import { Menu } from './components/Menu';
@@ -12,6 +11,8 @@ import { SetupStrip } from './components/SetupStrip';
 import { ListenBanner } from './components/ListenBanner';
 import { TranscriptColumn } from './components/TranscriptColumn';
 import { SummaryColumn } from './components/SummaryColumn';
+import { WatchList } from './components/WatchList';
+import { useSession } from './store/session';
 import { AnalysisBanner, AnalysisControls, AnalysisStatus } from './components/AnalysisControls';
 import { analysisRunner } from './analysis/runner';
 
@@ -20,6 +21,12 @@ export function App() {
   const [tab, setTab] = useState<TabId>('transcript');
   const hidden = (id: TabId) => narrow && tab !== id;
   const needsGate = useAuth((s) => !s.passcode && !s.skipped);
+  const unseen = useSession((s) => s.analysis.unseenFlags);
+  const markSeen = useSession((s) => s.markFlagsSeen);
+  const watchVisible = !narrow || tab === 'watch';
+  useEffect(() => {
+    if (watchVisible && unseen > 0) markSeen();
+  }, [watchVisible, unseen, markSeen]);
   useEffect(() => {
     analysisRunner.start();
     return () => analysisRunner.stop();
@@ -43,18 +50,11 @@ export function App() {
       <SetupStrip />
       <ListenBanner />
       <AnalysisBanner />
-      <Tabs active={tab} onChange={setTab} newFlags={0} />
+      <Tabs active={tab} onChange={setTab} newFlags={unseen} />
       <main className="grid">
         <TranscriptColumn hidden={hidden('transcript')} />
         <SummaryColumn hidden={hidden('summary')} />
-        <Column id="watch" title="Watch list" hidden={hidden('watch')}>
-          <div className="scroll">
-            <div className="empty">
-              Traps, logic errors and questions worth asking appear here, each with the exact words
-              that triggered it.
-            </div>
-          </div>
-        </Column>
+        <WatchList hidden={hidden('watch')} />
       </main>
       <ResumePrompt />
     </div>

@@ -20,6 +20,7 @@ function devApi(): Plugin {
         'APP_PASSCODE',
         'ANALYSIS_MODEL',
         'MAX_CALLS_PER_SESSION',
+        'RATE_LIMIT_PER_MIN',
       ]) {
         if (env[k] !== undefined && process.env[k] === undefined) process.env[k] = env[k];
       }
