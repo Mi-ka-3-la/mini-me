@@ -18,6 +18,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - name: Eval plumbing check (mock model, no API key)
+        run: npm run eval -- --mock
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

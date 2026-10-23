@@ -1,0 +1,36 @@
+{
+  "language": "en-US",
+  "title": "CRM vendor selection",
+  "planted": [
+    { "id": "p1", "type": "logic", "quote": "Our biggest competitor switched to Northwind last year and their sales went up fifteen percent, so Northwind clearly drives sales.", "note": "False cause; they also doubled the sales team." },
+    { "id": "p2", "type": "trap", "quote": "I'm sure it's included, they said everything.", "note": "Unverified claim; migration may be extra." },
+    { "id": "p3", "type": "trap", "quote": "The adapter is a formality, their partners build those all the time.", "note": "Dependency dismissed; last adapter took four months." },
+    { "id": "p4", "type": "logic", "quote": "They're a big company, their security is obviously fine.", "note": "Appeal to size/authority instead of evidence; policy requires the questionnaire." },
+    { "id": "p5", "type": "trap", "quote": "We'll deal with telephony in phase two, after the campaign. Agents can log calls by hand for a while.", "note": "Risk shifted silently; 400 calls a day by hand." },
+    { "id": "p6", "type": "logic", "quote": "The matrix doesn't capture everything. What really matters is how the sales team feels about it.", "note": "Moving goalposts after the matrix favours Bluepeak." },
+    { "id": "p7", "type": "logic", "quote": "I showed them the demo and nobody said anything negative.", "note": "Silence as evidence and hasty generalization: 5-6 of 80 reps." },
+    { "id": "p8", "type": "logic", "quote": "if we don't choose Northwind, we basically stay on spreadsheets for another year.", "note": "False dilemma." },
+    { "id": "p9", "type": "trap", "quote": "the new CRM should handle our partner portal as well. That's a small add-on.", "note": "Scope creep; separate product and licence." },
+    { "id": "p10", "type": "question", "quote": "We haven't named a project manager yet.", "note": "No owner for the project." },
+    { "id": "p11", "type": "question", "quote": "The vendor will handle training, that's normal.", "note": "Who owns training? Neither quote includes it." },
+    { "id": "p12", "type": "trap", "quote": "Silence is consent, I'll take that as a yes.", "note": "Agreement assumed from silence, contradicted by procurement and IT." },
+    { "id": "p13", "type": "trap", "quote": "Procurement has to start the contract today or we miss the summer campaign.", "note": "Pressure to decide now." }
+  ],
+  "acceptable": [
+    { "quote": "Okay, okay. Somebody will chase it.", "note": "No owner for the security questionnaire." },
+    { "quote": "Three months is what we need for the summer campaign." },
+    { "quote": "We don't need references for Northwind, everyone knows them." },
+    { "quote": "Northwind is the obvious choice." },
+    { "quote": "That was a different partner." },
+    { "quote": "Let's just ask them to include it." },
+    { "quote": "We'll find someone. Let's not slow down." },
+    { "quote": "Noted. I'll send the decision to the board tonight." },
+    { "quote": "It's temporary." },
+    { "quote": "Sure, but the numbers speak for themselves." }
+  ],
+  "decoys": [
+    { "quote": "I tested it on Tuesday with our sandbox data, it imported all eighteen months of tickets.", "note": "Claim backed by a test." },
+    { "quote": "I called two of Bluepeak's references last week. Both said support response times were under four hours, and one shared their SLA report with me.", "note": "Evidence, not hearsay." },
+    { "quote": "Both vendors confirmed EU hosting in writing, I have the letters in the evaluation folder, signed by their legal teams.", "note": "Confirmed in writing." }
+  ]
+}

@@ -1,0 +1,51 @@
+name: Eval
+# Manual run of the prompt evaluation against the real model (docs/04 §7).
+# Needs the repository secret ANTHROPIC_API_KEY. Costs a few cents per run.
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Model id
+        default: claude-sonnet-5-5
+      effort:
+        description: low, medium or high
+        default: medium
+      thinking:
+        description: adaptive or minimal
+        default: adaptive
+      runs:
+        description: Runs per fixture (results vary between runs)
+        default: '1'
+      speakers:
+        description: Keep speaker names in the transcript (Phase 0 has none)
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Run eval
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: >
+          npm run eval --
+          --model "${{ inputs.model }}"
+          --effort "${{ inputs.effort }}"
+          --thinking "${{ inputs.thinking }}"
+          --runs "${{ inputs.runs }}"
+          ${{ inputs.speakers && '--speakers' || '' }}
+          --json eval-results/result.json --md eval-results/summary.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: eval-results/

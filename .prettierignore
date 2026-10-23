@@ -9,3 +9,4 @@ eval-results
 .vercel
 docs
 *.md
+tests/fixtures/meetings
