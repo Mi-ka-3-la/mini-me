@@ -1,12 +1,20 @@
-import { summaryOutputSchema, watchResponseSchema } from '../../shared/schema';
+import {
+  answerResponseSchema,
+  summaryOutputSchema,
+  watchResponseSchema,
+} from '../../shared/schema';
 import type { ModelFlag, Topic } from '../../shared/types';
+import type { Answer } from '../store/types';
 import type { AnalyzeRequestInput } from '../../shared/schema';
 import { apiFetch, type ApiError } from '../lib/api';
 
 /** Client-side ceiling: a little above the server's 90 s maxDuration. */
 export const CLIENT_TIMEOUT_MS = 95_000;
 
-export type AnalyzeData = { flags: ModelFlag[] } | { tldr: string; topics: Topic[] };
+export type AnalyzeData =
+  | { flags: ModelFlag[]; questions: { id: string; quote: string; question: string }[] }
+  | { tldr: string; topics: Topic[] }
+  | { answer: Answer };
 export type AnalyzeResult = { ok: true; data: AnalyzeData } | { ok: false; error: ApiError };
 
 export async function callAnalyze(
@@ -34,7 +42,9 @@ export async function callAnalyze(
     const parsed =
       body.mode === 'watch'
         ? watchResponseSchema.safeParse(res.data)
-        : summaryOutputSchema.safeParse(res.data);
+        : body.mode === 'answer'
+          ? answerResponseSchema.safeParse(res.data)
+          : summaryOutputSchema.safeParse(res.data);
     if (!parsed.success) {
       return { ok: false, error: { status: 200, code: 'invalid_output', message: 'Malformed.' } };
     }

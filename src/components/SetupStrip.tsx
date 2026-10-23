@@ -1,4 +1,5 @@
 import { LANGUAGES, type Language } from '../../shared/types';
+import { MAX_BACKGROUND } from '../../shared/schema';
 import { isWakeLockSupported } from '../audio/wakeLock';
 import { isWebSpeechSupported } from '../audio/webSpeech';
 import { useState } from 'react';
@@ -14,6 +15,8 @@ export function SetupStrip() {
   const status = useSession((s) => s.listen);
   const setLanguage = useSession((s) => s.setLanguage);
   const setContext = useSession((s) => s.setContext);
+  const background = useSession((s) => s.background);
+  const setBackground = useSession((s) => s.setBackground);
   const active = status === 'listening' || status === 'reconnecting' || status === 'starting';
   const narrow = useMediaQuery(NARROW);
   const [expanded, setExpanded] = useState(false);
@@ -61,6 +64,17 @@ export function SetupStrip() {
           onChange={(e) => setContext(e.target.value)}
         />
         <span className="reminder">Let participants know this meeting is being transcribed.</span>
+      </div>
+      <div className="field grow">
+        <label htmlFor="background">My background (for answers)</label>
+        <textarea
+          id="background"
+          rows={1}
+          maxLength={MAX_BACKGROUND}
+          placeholder="A few lines about you: roles, projects, strengths. Used only when you tap Answer on a question. Kept on this device."
+          value={background}
+          onChange={(e) => setBackground(e.target.value)}
+        />
       </div>
       {narrow && active && (
         <button className="btn small" onClick={() => setExpanded(false)}>

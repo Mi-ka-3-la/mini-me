@@ -8,6 +8,7 @@ export const KEYS = {
   passcode: 'mc.passcode',
   passcodeSkipped: 'mc.passcode.skipped',
   theme: 'mc.theme',
+  background: 'mc.background',
 } as const;
 
 export function readString(key: string): string | null {

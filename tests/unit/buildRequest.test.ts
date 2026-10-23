@@ -23,6 +23,7 @@ const session = (over: Partial<Session> = {}): Session => ({
   lastAnalysisAt: null,
   summaryUpToLineIndex: 0,
   lastSummaryAt: null,
+  questions: [],
   ...over,
 });
 const line = (t: number, text: string, speakerId?: string) => ({

@@ -715,3 +715,140 @@ details.asked-section summary {
 .why-toggle {
   font-size: 12px;
 }
+
+/* Added (ADR-20): questions and their answer plans. */
+.view-switch {
+  display: flex;
+  gap: 4px;
+  padding: 8px 14px 0;
+}
+.view-switch .chip[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.question {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.question.latest {
+  border-color: var(--accent);
+}
+.question .kind {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.question .who {
+  color: var(--muted);
+}
+.question-text {
+  font-weight: 600;
+  font-size: 15px;
+  margin: 3px 0 4px;
+}
+.question q {
+  display: block;
+  font-size: 12.5px;
+  color: var(--muted);
+  border-left: 2px solid var(--line);
+  padding-left: 8px;
+  margin: 4px 0 8px;
+  quotes: '“' '”';
+}
+.answer-trap {
+  background: var(--trap-soft);
+  color: var(--ink);
+  border-left: 4px solid var(--trap);
+  border-radius: 0 8px 8px 0;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.answer-trap b {
+  color: var(--trap);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-right: 6px;
+}
+.answer-headline {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.answer-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.answer-steps li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 10px;
+  padding-bottom: 10px;
+  animation: step-in 0.35s ease-out both;
+}
+/* The connector line between step numbers makes the plan read as a sequence. */
+.answer-steps li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 26px;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent-soft);
+}
+.step-no {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--panel);
+  font-family: var(--mono);
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+}
+.step-body {
+  background: var(--accent-soft);
+  border-radius: 8px;
+  padding: 5px 9px;
+  display: flex;
+  flex-direction: column;
+}
+.step-body span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.answer-steps li:nth-child(2) {
+  animation-delay: 120ms;
+}
+.answer-steps li:nth-child(3) {
+  animation-delay: 240ms;
+}
+.answer-steps li:nth-child(4) {
+  animation-delay: 360ms;
+}
+.answer-steps li:nth-child(5),
+.answer-steps li:nth-child(6) {
+  animation-delay: 480ms;
+}
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .answer-steps li {
+    animation: none;
+  }
+}

@@ -83,6 +83,20 @@ const s: Session = {
   lastAnalysisAt: 1,
   summaryUpToLineIndex: 2,
   lastSummaryAt: 1,
+  questions: [
+    {
+      id: 'q1',
+      t: 90_000,
+      quote: 'How would you fix the debt?',
+      question: 'How would you reduce tech debt?',
+      answer: {
+        question: 'x',
+        trap: 'False choice.',
+        headline: 'Make it visible',
+        steps: [{ label: 'Map it', detail: 'by hotspot' }],
+      },
+    },
+  ],
 };
 
 describe('notesMarkdown', () => {
@@ -99,6 +113,14 @@ describe('notesMarkdown', () => {
     expect(md).toContain('### Asked\n- **[Ask this]** Asked one');
     expect(md).not.toContain('Dismissed one');
     expect(md).not.toContain('## Transcript');
+  });
+
+  it('lists questions with their answers', () => {
+    const md = notesMarkdown(s, { includeTranscript: false });
+    expect(md).toContain('## Questions\n- **How would you reduce tech debt?** (01:30)');
+    expect(md).toContain(
+      '  Trap: False choice.\n  Answer: Make it visible\n  1. Map it — by hotspot',
+    );
   });
 
   it('adds the transcript only when asked to', () => {

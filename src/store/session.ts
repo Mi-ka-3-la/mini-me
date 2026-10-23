@@ -3,7 +3,17 @@ import type { Language } from '../../shared/types';
 import { newId } from '../lib/ids';
 import { KEYS, readString, writeString } from '../lib/storage';
 import { clearSession, hasContent, loadSession, saveSession } from './persist';
-import type { ClientFlag, Gap, Interim, Line, Session, Speaker, Summary } from './types';
+import type {
+  Answer,
+  ClientFlag,
+  Gap,
+  Interim,
+  Line,
+  Question,
+  Session,
+  Speaker,
+  Summary,
+} from './types';
 
 export type ListenStatus = 'idle' | 'starting' | 'listening' | 'reconnecting' | 'error';
 
@@ -15,6 +25,11 @@ type Runtime = {
   /** A saved session found at load, waiting for the user's "Resume meeting?" answer. */
   pendingResume: Session | null;
   analysis: AnalysisRuntime;
+  /** The listener's background for answers (ADR-20). Kept on this device, not in the session. */
+  background: string;
+  /** Question being answered right now, and the last answer error. */
+  answeringId: string | null;
+  answerError: { id: string; message: string } | null;
 };
 
 export type AnalysisError = { code: string; message: string };
@@ -68,6 +83,10 @@ type Actions = {
   }) => void;
   /** Applies a watch result, if it belongs to the current session. */
   applyWatch: (r: { sessionId: string; flags: ClientFlag[]; newFlagIds: string[] }) => void;
+  setBackground: (b: string) => void;
+  addQuestions: (r: { sessionId: string; questions: Omit<Question, 't'>[]; at: number }) => void;
+  setAnswering: (id: string | null, error?: { id: string; message: string } | null) => void;
+  setAnswer: (r: { sessionId: string; id: string; answer: Answer }) => void;
   /** Applies a summary result, if it belongs to the current session. */
   applySummary: (r: { sessionId: string; summary: Summary }) => void;
 };
@@ -94,6 +113,7 @@ export function emptySession(language: Language = lastLanguage(), now = Date.now
     lastAnalysisAt: null,
     summaryUpToLineIndex: 0,
     lastSummaryAt: null,
+    questions: [],
   };
 }
 
@@ -126,6 +146,9 @@ export const useSession = create<SessionState>((set, get) => ({
   listenError: null,
   pendingResume: resumable,
   analysis: freshAnalysis(),
+  background: readString(KEYS.background) ?? '',
+  answeringId: null,
+  answerError: null,
 
   resume: () => {
     const p = get().pendingResume;
@@ -139,6 +162,8 @@ export const useSession = create<SessionState>((set, get) => ({
       pendingResume: null,
       interim: null,
       analysis: freshAnalysis(st.analysis.maxCalls),
+      answeringId: null,
+      answerError: null,
     }));
   },
   setLanguage: (language) => {
@@ -238,6 +263,37 @@ export const useSession = create<SessionState>((set, get) => ({
           retryAt: 0,
           newFlagIds,
           unseenFlags: st.analysis.unseenFlags + newFlagIds.length,
+        },
+      };
+    }),
+  setBackground: (background) => {
+    writeString(KEYS.background, background);
+    set({ background });
+  },
+  addQuestions: ({ sessionId, questions, at }) =>
+    set((st) => {
+      if (st.session.id !== sessionId || questions.length === 0) return {};
+      const known = new Set(st.session.questions.map((q) => q.id));
+      questions = questions.filter((q) => !known.has(q.id));
+      if (questions.length === 0) return {};
+      const t = Math.max(0, at - st.session.startedAt);
+      return {
+        session: {
+          ...st.session,
+          questions: [...st.session.questions, ...questions.map((q) => ({ ...q, t }))],
+        },
+      };
+    }),
+  setAnswering: (answeringId, answerError = null) => set({ answeringId, answerError }),
+  setAnswer: ({ sessionId, id, answer }) =>
+    set((st) => {
+      if (st.session.id !== sessionId) return { answeringId: null };
+      return {
+        answeringId: null,
+        answerError: null,
+        session: {
+          ...st.session,
+          questions: st.session.questions.map((q) => (q.id === id ? { ...q, answer } : q)),
         },
       };
     }),

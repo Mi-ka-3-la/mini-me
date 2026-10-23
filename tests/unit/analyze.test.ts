@@ -62,7 +62,7 @@ describe('/api/analyze', () => {
     const args = call.mock.calls[0]![0];
     expect(args.user).toContain('Need a firm go-live owner');
     expect(args.user).toContain('Return only the CHANGES');
-    expect(args.schema).toHaveProperty('required', ['add', 'update', 'drop']);
+    expect(args.schema).toHaveProperty('required', ['add', 'update', 'drop', 'questions']);
     expect(args.timeoutMs).toBe(BUDGET.firstMs);
   });
 
