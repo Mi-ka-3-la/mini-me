@@ -2,6 +2,7 @@
 import { defineConfig, loadEnv, type Plugin, type ViteDevServer } from 'vite';
 import react from '@vitejs/plugin-react';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { SECURITY_HEADERS } from './config/securityHeaders.ts';
 
 const MAX_BODY = 210 * 1024;
 
@@ -82,6 +83,7 @@ function devApi(): Plugin {
 export default defineConfig({
   plugins: [react(), devApi()],
   server: { port: 5173 },
+  preview: { port: 4173, headers: SECURITY_HEADERS },
   test: {
     include: ['tests/unit/**/*.test.{ts,tsx}'],
     environment: 'node',

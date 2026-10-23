@@ -35,13 +35,21 @@ export class AnalysisRunner {
       }),
     );
     void this.loadConfig();
+    window.addEventListener('online', this.onOnline);
   }
+
+  /** Back online: retry at once instead of waiting out the back-off. */
+  private onOnline = () => {
+    useSession.getState().setAnalysis({ retryAt: 0 });
+    this.tick();
+  };
 
   stop(): void {
     if (this.interval) clearInterval(this.interval);
     this.interval = null;
     for (const u of this.unsubs) u();
     this.unsubs = [];
+    window.removeEventListener('online', this.onOnline);
     this.abort();
   }
 
@@ -83,7 +91,10 @@ export class AnalysisRunner {
       maxCalls: st.analysis.maxCalls,
       retryAt: st.analysis.retryAt,
       now,
-      canCall: !!auth.passcode && !auth.rejected,
+      canCall:
+        !!auth.passcode &&
+        !auth.rejected &&
+        (typeof navigator === 'undefined' || navigator.onLine !== false),
     });
     if (st.analysis.manualRequested && !d.run && d.reason !== 'running') {
       st.setAnalysis({ manualRequested: false });

@@ -13,6 +13,7 @@ import { TranscriptColumn } from './components/TranscriptColumn';
 import { SummaryColumn } from './components/SummaryColumn';
 import { WatchList } from './components/WatchList';
 import { CopyNotesButton } from './components/ExportDialog';
+import { OfflineBanner } from './components/OfflineBanner';
 import { useSession } from './store/session';
 import { AnalysisBanner, AnalysisControls, AnalysisStatus } from './components/AnalysisControls';
 import { analysisRunner } from './analysis/runner';
@@ -50,6 +51,7 @@ export function App() {
         <Menu />
       </header>
       <SetupStrip />
+      <OfflineBanner />
       <ListenBanner />
       <AnalysisBanner />
       <Tabs active={tab} onChange={setTab} newFlags={unseen} />
