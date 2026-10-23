@@ -44,3 +44,53 @@ export const SCRIPTS: Script[] = [
     lines: parseScript(roErp),
   },
 ];
+
+const WORDS_PER_SEC = 2.5;
+const GAP_MS = 700;
+const MAX_CHUNK_WORDS = 30;
+const SPEAKER = /^([^:]{1,40}):\s+(.+)$/;
+
+/** Splits a long turn into caption-sized pieces at sentence ends, as live captions arrive. */
+function chunks(text: string): string[] {
+  const sentences = text.split(/(?<=[.?!])\s+/).filter(Boolean);
+  const out: string[] = [];
+  let cur = '';
+  for (const s of sentences) {
+    const next = cur ? `${cur} ${s}` : s;
+    if (cur && next.split(/\s+/).length > MAX_CHUNK_WORDS) {
+      out.push(cur);
+      cur = s;
+    } else {
+      cur = next;
+    }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+/**
+ * Parses a transcript the listener pastes in (ADR-22). Accepts "[mm:ss] Name: text" lines, or
+ * "Name: text" lines without times (Granola, Teams, Zoom exports). Without times, each piece is
+ * timed at speaking pace. A speaker label is kept only when it looks like a name (up to 4 words).
+ */
+export function parsePasted(raw: string): ScriptLine[] {
+  const timed = parseScript(raw);
+  if (timed.length > 0) return timed;
+  const out: ScriptLine[] = [];
+  let t = 0;
+  for (const row of raw.split('\n')) {
+    const line = row.trim();
+    if (!line) continue;
+    const m = SPEAKER.exec(line);
+    const label = m?.[1]?.trim();
+    const isName = !!label && label.split(/\s+/).length <= 4;
+    const speaker = isName ? label : undefined;
+    const text = (isName ? m?.[2] : line)?.trim() ?? '';
+    if (!text) continue;
+    for (const piece of chunks(text)) {
+      out.push({ t, ...(speaker ? { speaker } : {}), text: piece });
+      t += (piece.split(/\s+/).length / WORDS_PER_SEC) * 1000 + GAP_MS;
+    }
+  }
+  return out;
+}
