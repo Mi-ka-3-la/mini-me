@@ -22,6 +22,21 @@ Reading the numbers:
 
 ## Runs
 
+### 2026-10-23 — claude-sonnet-5-5, effort medium, thinking minimal, no speaker names
+
+GitHub Actions run "Eval #3", one run per fixture.
+
+| Fixture | Recall | Precision | Decoys | Stability | Flags | Slowest call |
+|---|---|---|---|---|---|---|
+| en-crm-vendor | 62% | 83% | 0 | 100% | 12 | 23.8 s |
+| en-payroll-golive | 62% | 100% | 0 | 75% | 12 | 30.1 s |
+| ro-efactura-erp | 54% | 100% | 0 | 100% | 12 | 35.3 s |
+| ro-portal-clinici | 58% | 92% | 1 | 55% | 12 | 35.3 s |
+
+**Overall:** recall 59%, precision 94%, decoy hits 1 (target met), stability 82%, type agreement 80%. Latency p50 21.3 s, p95 35.3 s. Tokens in 57 062, out 37 348.
+
+Comparison with the adaptive run (observation; one run each, so differences of a few points are within noise): quality is about the same, and turning thinking down did **not** make calls faster. Output stayed at about 3 100 tokens per call in both runs. Interpretation: the time goes into writing the full state on every call (ADR-3), not into thinking. Reaching the 15 s target needs a smaller answer per call, for example flags on every call and the summary less often, or a faster model; a thinking setting alone will not do it. This is a design decision for Mihaela before the prompt is tuned.
+
 ### 2026-10-23 — claude-sonnet-5-5, effort medium, thinking adaptive, no speaker names (first real run)
 
 GitHub Actions run "Eval #2", one run per fixture.
