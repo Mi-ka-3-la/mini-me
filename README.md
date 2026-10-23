@@ -29,7 +29,7 @@ The planning package lives in `docs/`, and the standing rules for Claude Code in
 
 ## Status: Phase 0 built, waiting for real-device tests
 
-Phase 0 is the browser app with live listening through the browser's own speech engine (`docs/03-implementation-plan.md`). The code for tasks T0.1–T0.14 is in place, with 83 unit tests and 40 end-to-end tests passing. What is left is what only a real device, a real meeting and a real API key can show: see "Not done yet" and the checklist below.
+Phase 0 is the browser app with live listening through the browser's own speech engine (`docs/03-implementation-plan.md`). The code for tasks T0.1–T0.14 is in place, with 83 unit tests and 39 end-to-end tests passing (plus one narrow-screen test that is skipped at desktop width). What is left is what only a real device, a real meeting and a real API key can show: see "Not done yet" and the checklist below.
 
 Owner: Mihaela Ilie (Business Analyst / Product Owner). Planning date: 23 October 2026.
 
