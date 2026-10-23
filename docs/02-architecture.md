@@ -187,7 +187,7 @@ Server rules:
 - Validate the request body with zod, and reject anything over 200 KB.
 - Get structured output with the native **JSON outputs** feature: `output_config.format = {type: "json_schema", schema}` (GA, verified 23 Oct 2026, ADR-10). The schema cannot carry `maxItems`, so the 12-flag cap is enforced on the server.
 - Validate the model output with zod. On failure, retry once with the validation error appended. If it fails again, return 502.
-- `max_tokens`: 4000. Time budget: 50 s for the first attempt; the retry runs only if at least 20 s of a 75 s total budget remain. `maxDuration` of the function: 90 s. SDK automatic retries are off, so the budget is ours.
+- `max_tokens`: 8000, because thinking tokens count toward it (ADR-18). Time budget: 50 s for the first attempt; the retry runs only if at least 20 s of a 75 s total budget remain. `maxDuration` of the function: 90 s. SDK automatic retries are off, so the budget is ours.
 - Log only timing, token counts and error codes. **Never log transcript content.**
 
 ## 7. Transcriber interface
@@ -241,6 +241,8 @@ interface Transcriber {
 | `APP_PASSCODE` | 0 | Gate for all API routes |
 | `ANALYSIS_MODEL` | 0 | Default `claude-sonnet-5-5`. Can be switched to `claude-haiku-5-5` (faster, cheaper) or `claude-opus-5-5` (deeper). |
 | `MAX_CALLS_PER_SESSION` | 0 | Default 150. Read by `/api/config` and enforced in the browser. |
+| `ANALYSIS_EFFORT` | 0 | `low`, `medium` (default) or `high`. Lower is faster (ADR-18). |
+| `ANALYSIS_THINKING` | 0 | `adaptive` (default) or `minimal`. `minimal` turns up-front thinking off where the model allows it (ADR-18). |
 | `ASSEMBLYAI_API_KEY` | 1 | STT token minting |
 
 ## 10. Decision records added at the Phase 0 plan check (23 Oct 2026)
@@ -257,3 +259,4 @@ interface Transcriber {
 - **ADR-15: Passcode check endpoint.** `GET /api/ping` validates the passcode at entry. The passcode screen offers "Continue without analysis", so transcription works without a valid code (checklist item 8). A later 401 shows a banner; transcription continues.
 - **ADR-16: Screen wake lock.** While listening, the app holds a Screen Wake Lock so the tablet does not lock and stop recognition. If the browser does not support it, the start panel says so.
 - **ADR-17: Romanian-aware quote normalization.** Before any quote comparison: Unicode NFD, remove combining marks, map ş/ș to s and ţ/ț to t, lowercase, strip punctuation, collapse whitespace. "Token overlap ≥ 0.85" means: the share of the quote's tokens found, in order-insensitive form, inside some window of the transcript of the same length (±2 tokens).
+- **ADR-18: Thinking, effort and no forced tool call (added in T0.8).** On the 5.5 models thinking is on by default (adaptive) and its tokens count toward `max_tokens`, so `max_tokens` is 8000 instead of 4000. Sonnet 5.5 rejects forced tool use (`tool_choice` `tool` or `any`), which confirms ADR-10. Non-default `temperature` is rejected, so the eval cannot pin it and results vary from run to run. Effort defaults to `high` on Sonnet 5.5; the app sends `medium` by default (`ANALYSIS_EFFORT`), the level the docs suggest for latency-sensitive work. `ANALYSIS_THINKING=minimal` sends `between_tools` on Sonnet and `disabled` on Haiku. The eval compares these settings before the defaults are fixed.

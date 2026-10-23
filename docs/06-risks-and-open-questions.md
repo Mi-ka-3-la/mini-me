@@ -49,6 +49,9 @@ These were checked against vendor documentation on the planning date. Re-check t
 | Web Speech `SpeechRecognition` now has `processLocally`, `available()` and `install()` for on-device recognition, and `start()` can take an audio track. Chrome uses a server-based engine by default, so recognition does not work offline. | developer.mozilla.org/docs/Web/API/SpeechRecognition |
 | On iOS Safari, `continuous` recognition is unreliable: it stops on its own and the first attempt often fails; recognition dies when the page goes to the background. A developer report says it stops working after "Add to Home Screen" (no official answer). | lilting.ch/en/articles/ios-webspeech-api-tips; developer.apple.com/forums/thread/748048 |
 
+| On Sonnet 5.5 and Haiku 5.5, thinking is adaptive by default and its tokens count toward `max_tokens`. Sonnet 5.5 rejects `thinking: {type: "disabled"}` and forced tool use; it accepts `between_tools` at effort `high` or lower. Non-default `temperature`, `top_p`, `top_k` return 400. | platform.claude.com/docs/en/build-with-claude/thinking |
+| Default effort: Sonnet 5.5 `high`, Opus 5.5 and Haiku 5.5 `medium`. For latency-sensitive work the docs suggest `medium` or `low` on Sonnet. | platform.claude.com/docs/en/build-with-claude/effort |
+
 **Still not verified:** Edge's behaviour with `webkitSpeechRecognition`, Romanian availability per browser, whether Android Chrome plays a system sound on each restart. These are covered by the Phase 0 device checklist.
 
 **Not verified, from general knowledge:**
