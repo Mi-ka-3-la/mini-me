@@ -11,6 +11,7 @@ import { ListenIndicator, ListenStatusText, StartStopButton } from './components
 import { SetupStrip } from './components/SetupStrip';
 import { ListenBanner } from './components/ListenBanner';
 import { TranscriptColumn } from './components/TranscriptColumn';
+import { SummaryColumn } from './components/SummaryColumn';
 import { AnalysisBanner, AnalysisControls, AnalysisStatus } from './components/AnalysisControls';
 import { analysisRunner } from './analysis/runner';
 
@@ -45,13 +46,7 @@ export function App() {
       <Tabs active={tab} onChange={setTab} newFlags={0} />
       <main className="grid">
         <TranscriptColumn hidden={hidden('transcript')} />
-        <Column id="summary" title="Running summary" hidden={hidden('summary')}>
-          <div className="scroll">
-            <div className="empty">
-              The summary builds here by topic once there is something to summarize.
-            </div>
-          </div>
-        </Column>
+        <SummaryColumn hidden={hidden('summary')} />
         <Column id="watch" title="Watch list" hidden={hidden('watch')}>
           <div className="scroll">
             <div className="empty">
