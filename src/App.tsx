@@ -2,11 +2,16 @@ import { useState } from 'react';
 import { Column } from './components/Column';
 import { Tabs, type TabId } from './components/Tabs';
 import { NARROW, useMediaQuery } from './lib/useMediaQuery';
+import { Menu } from './components/Menu';
+import { PasscodeGate } from './components/PasscodeGate';
+import { useAuth } from './store/auth';
 
 export function App() {
   const narrow = useMediaQuery(NARROW);
   const [tab, setTab] = useState<TabId>('transcript');
   const hidden = (id: TabId) => narrow && tab !== id;
+  const needsGate = useAuth((s) => !s.passcode && !s.skipped);
+  if (needsGate) return <PasscodeGate />;
   return (
     <div className="app">
       <header className="bar">
@@ -16,6 +21,7 @@ export function App() {
         </h1>
         <span className="status">Ready</span>
         <span className="spacer" />
+        <Menu />
       </header>
       <Tabs active={tab} onChange={setTab} newFlags={0} />
       <main className="grid">
