@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Column } from './components/Column';
 import { Tabs, type TabId } from './components/Tabs';
 import { NARROW, useMediaQuery } from './lib/useMediaQuery';
@@ -11,12 +11,18 @@ import { ListenIndicator, ListenStatusText, StartStopButton } from './components
 import { SetupStrip } from './components/SetupStrip';
 import { ListenBanner } from './components/ListenBanner';
 import { TranscriptColumn } from './components/TranscriptColumn';
+import { AnalysisBanner, AnalysisControls, AnalysisStatus } from './components/AnalysisControls';
+import { analysisRunner } from './analysis/runner';
 
 export function App() {
   const narrow = useMediaQuery(NARROW);
   const [tab, setTab] = useState<TabId>('transcript');
   const hidden = (id: TabId) => narrow && tab !== id;
   const needsGate = useAuth((s) => !s.passcode && !s.skipped);
+  useEffect(() => {
+    analysisRunner.start();
+    return () => analysisRunner.stop();
+  }, []);
   if (needsGate) return <PasscodeGate />;
   return (
     <div className="app">
@@ -26,13 +32,16 @@ export function App() {
           Meeting Copilot
         </h1>
         <ListenStatusText />
+        <AnalysisStatus />
         <span className="spacer" />
         <StartStopButton />
+        <AnalysisControls />
         <NewMeetingButton />
         <Menu />
       </header>
       <SetupStrip />
       <ListenBanner />
+      <AnalysisBanner />
       <Tabs active={tab} onChange={setTab} newFlags={0} />
       <main className="grid">
         <TranscriptColumn hidden={hidden('transcript')} />
