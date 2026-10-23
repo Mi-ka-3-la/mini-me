@@ -12,6 +12,7 @@ import { ListenBanner } from './components/ListenBanner';
 import { TranscriptColumn } from './components/TranscriptColumn';
 import { SummaryColumn } from './components/SummaryColumn';
 import { WatchList } from './components/WatchList';
+import { CopyNotesButton } from './components/ExportDialog';
 import { useSession } from './store/session';
 import { AnalysisBanner, AnalysisControls, AnalysisStatus } from './components/AnalysisControls';
 import { analysisRunner } from './analysis/runner';
@@ -44,6 +45,7 @@ export function App() {
         <span className="spacer" />
         <StartStopButton />
         <AnalysisControls />
+        <CopyNotesButton />
         <NewMeetingButton />
         <Menu />
       </header>
