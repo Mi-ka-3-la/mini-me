@@ -78,3 +78,31 @@ describe('summary cadence (ADR-19)', () => {
     );
   });
 });
+
+describe('question fast path (ADR-23)', () => {
+  it('runs at once on a question, with a few words and 8 s since the last call', () => {
+    expect(d({ questionPending: true, newWords: 6, sinceLastMs: 8_000 })).toEqual({
+      run: true,
+      reason: 'question',
+    });
+    expect(d({ questionPending: true, newWords: 6, sinceLastMs: 7_999 }).run).toBe(false);
+    expect(d({ questionPending: true, newWords: 3, sinceLastMs: 60_000 }).run).toBe(false);
+    expect(d({ questionPending: true, newWords: 50, sinceLastMs: 60_000, running: true }).run).toBe(
+      false,
+    );
+    expect(
+      d({ questionPending: true, newWords: 50, sinceLastMs: 60_000, callsUsed: 150 }).run,
+    ).toBe(false);
+  });
+  it('recognises questions with or without a question mark, in English and Romanian', async () => {
+    const { looksLikeQuestion } = await import('../../src/analysis/scheduler');
+    expect(looksLikeQuestion('Have you ever worked with generative AI as a product material')).toBe(
+      true,
+    );
+    expect(looksLikeQuestion('Okay, so how would you approach breaking that down')).toBe(true);
+    expect(looksLikeQuestion('Cum ai pune ordine în datoria tehnică')).toBe(true);
+    expect(looksLikeQuestion('Când poți începe?')).toBe(true);
+    expect(looksLikeQuestion('We are building a team from scratch.')).toBe(false);
+    expect(looksLikeQuestion('Am lucrat doi ani pe facturare.')).toBe(false);
+  });
+});
