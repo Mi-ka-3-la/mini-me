@@ -8,9 +8,20 @@ const ANSWER = {
     trap: 'It assumes you must choose between paying debt and shipping.',
     headline: 'Make debt visible, then pay it down inside the flow',
     steps: [
-      { label: 'Map the debt', detail: 'Hotspots by incidents and change frequency' },
+      {
+        label: 'Map the debt',
+        detail: 'Hotspots by incidents and change frequency',
+        why: 'It turns a feeling into a list business can rank.',
+      },
       { label: 'Agree a budget', detail: '15–20% of each sprint, owned by the team' },
       { label: 'Fix where you touch', detail: 'Clean up on every story' },
+    ],
+    explain: [
+      {
+        label: 'WHAT IT IS',
+        title: 'Tech debt is deferred work with interest',
+        body: 'Shortcuts save time now. Each later change costs more, because it must work around them.',
+      },
     ],
   },
 };
@@ -53,6 +64,10 @@ test('questions are listed and answered only on tap, as a step plan with the tra
   await expect(q.getByText('Make debt visible, then pay it down inside the flow')).toBeVisible();
   await expect(q.getByText('It assumes you must choose')).toBeVisible();
   await expect(q.locator('.answer-steps li')).toHaveCount(3);
+  await expect(q.getByText('Why: It turns a feeling into a list')).toBeVisible();
+  await expect(q.getByText('Tech debt is deferred work with interest')).toBeHidden();
+  await q.getByText('Understand it').click();
+  await expect(q.getByText('Tech debt is deferred work with interest')).toBeVisible();
   expect(answerCalls).toBe(1);
   expect(sentBackground).toBe('PSPO II, owns a 9-developer backlog');
 });

@@ -44,7 +44,8 @@ export type Answer = {
   question: string;
   trap: string;
   headline: string;
-  steps: { label: string; detail: string }[];
+  steps: { label: string; detail: string; why: string }[];
+  explain: { label: string; title: string; body: string }[];
 };
 
 const clean = (s: string) => s.replace(/\s+/g, ' ').trim();
@@ -222,9 +223,17 @@ export function cleanAnswer(a: Answer): Answer {
     trap: clean(a.trap),
     headline: clean(a.headline),
     steps: a.steps
-      .map((st) => ({ label: clean(st.label), detail: clean(st.detail) }))
+      .map((st) => ({ label: clean(st.label), detail: clean(st.detail), why: clean(st.why) }))
       .filter((st) => st.label)
       .slice(0, 6),
+    explain: a.explain
+      .map((x) => ({
+        label: clean(x.label).toUpperCase(),
+        title: clean(x.title),
+        body: clean(x.body),
+      }))
+      .filter((x) => x.title && x.body)
+      .slice(0, 5),
   };
 }
 
