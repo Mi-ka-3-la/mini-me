@@ -34,3 +34,25 @@ This folder is the complete planning package. Hand it to Claude Code in the GitH
 
 Owner: Mihaela Ilie (Business Analyst / Product Owner).
 Planning date: 23 October 2026.
+
+## Development
+
+Requirements: Node 22 or 24, npm.
+
+```bash
+npm install
+cp .env.example .env      # fill in APP_PASSCODE, and ANTHROPIC_API_KEY for analysis
+npm run dev               # http://localhost:5173, UI and /api together, no Vercel login needed
+```
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Vite dev server with the `/api` routes mounted (ADR-13) |
+| `npm run dev:vercel` | The same through `vercel dev` (needs the Vercel CLI and a linked project) |
+| `npm run lint` | ESLint and Prettier check |
+| `npm run typecheck` | TypeScript, strict |
+| `npm test` | Unit tests (Vitest) |
+| `npm run test:e2e` | Playwright smoke test at 1280, 768 and 400 px |
+| `npm run eval` | Prompt evaluation, needs `ANTHROPIC_API_KEY` (see `docs/04-analysis-prompt.md` §7) |
+
+CI runs lint, typecheck, unit tests, build and the smoke test on every pull request.
