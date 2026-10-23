@@ -1,0 +1,38 @@
+{
+  "language": "ro-RO",
+  "title": "Go-live facturare și e-Factura",
+  "planted": [
+    { "id": "p1", "type": "trap", "quote": "Certificatul e o formalitate, îl luăm noi cumva.", "note": "Dependență minimalizată, fără responsabil și dată; data depinde de certificat." },
+    { "id": "p2", "type": "logic", "quote": "Dacă zece facturi au trecut, înseamnă că toate facturile vor trece.", "note": "Generalizare pripită: doar facturi simple." },
+    { "id": "p3", "type": "trap", "quote": "Rezolvăm noi regularizările după lansare, nu e urgent.", "note": "Risc mutat după lansare; 200 de avansuri deschise." },
+    { "id": "p4", "type": "trap", "quote": "noul modul ne va scurta încasările cu douăzeci de zile.", "note": "Cifră fără sursă, intră în raportul pentru board." },
+    { "id": "p5", "type": "logic", "quote": "Avem doar două variante: ori îl oprim de tot pe 1 aprilie, ori plătim licența completă încă doi ani.", "note": "Fals dilemă; există varianta doar citire." },
+    { "id": "p6", "type": "trap", "quote": "ar fi bine ca noul modul să trimită automat și rapoartele de comisioane pentru agenți. E un detaliu mic.", "note": "Extindere de scope prezentată ca detaliu." },
+    { "id": "p7", "type": "logic", "quote": "Furnizorul a lucrat cu multe firme mari, deci știe ce face și nu trebuie să verificăm planul de migrare.", "note": "Apel la autoritate în loc de verificare." },
+    { "id": "p8", "type": "logic", "quote": "L-am prezentat la ședința de luni și n-a obiectat nimeni, deci e aprobat.", "note": "Tăcere considerată aprobare; IT nu a fost prezent." },
+    { "id": "p9", "type": "question", "quote": "Se ocupă cineva. Nu intrăm acum în detalii.", "note": "Fără responsabil pentru manual." },
+    { "id": "p10", "type": "question", "quote": "cine din partea voastră semnează acceptanța finală a proiectului?", "note": "Responsabil lipsă pentru acceptanță." },
+    { "id": "p11", "type": "trap", "quote": "Nimeni nu are obiecții, deci mergem pe 1 aprilie.", "note": "Acord presupus din tăcere, contrazis imediat de IT." },
+    { "id": "p12", "type": "trap", "quote": "Avem nevoie de un da azi, mâine raportez la board.", "note": "Presiune pentru decizie imediată." },
+    { "id": "p13", "type": "question", "quote": "Nu o să le respingă, am testat deja.", "note": "Ce facem dacă ANAF respinge facturi? Testul a acoperit doar facturi simple." }
+  ],
+  "acceptable": [
+    { "quote": "Acum e altfel." },
+    { "quote": "Mă rog, principiul e același." },
+    { "quote": "Vedem atunci." },
+    { "quote": "Așa am estimat noi, e o cifră realistă." },
+    { "quote": "O trecem în raportul pentru board." },
+    { "quote": "Adăugați-le, nu poate fi atât de greu." },
+    { "quote": "Nu complicăm. Îl oprim." },
+    { "quote": "Detaliu." },
+    { "quote": "O să vedem pe parcurs." },
+    { "quote": "Atunci rămânem pe 1 aprilie, cum am stabilit." },
+    { "quote": "Rămâne 1 aprilie. Mulțumesc tuturor." },
+    { "quote": "Facturile de avans trebuie regularizate altfel în noul sistem. Asta trebuie decis de cineva din contabilitate." }
+  ],
+  "decoys": [
+    { "quote": "Avem spațiu pentru încă trei ani de documente, raportul e în folderul proiectului.", "note": "Verificat, cu sursă." },
+    { "quote": "Cristian e de gardă sâmbătă și duminică, aprobat de șeful lui pe e-mail.", "note": "Responsabil confirmat." },
+    { "quote": "am făcut reconcilierea pe februarie și diferențele sunt zero, documentul e semnat de auditor.", "note": "Afirmație susținută de document semnat." }
+  ]
+}

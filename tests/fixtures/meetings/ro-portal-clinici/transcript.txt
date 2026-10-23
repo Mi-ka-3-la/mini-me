@@ -1,0 +1,43 @@
+[00:04] Cristina (Product Owner): Salut. Azi vrem să închidem scope-ul pentru lansarea portalului de programări pentru rețeaua de clinici și să confirmăm bugetul de marketing.
+[00:14] Victor (Tech Lead): Din partea echipei, programarea online și confirmarea prin SMS sunt gata și testate pe staging.
+[00:22] Cristina (Product Owner): Perfect. Lansăm pe 15 mai în toate cele douăsprezece clinici.
+[00:28] Victor (Tech Lead): Putem lansa pe 15 mai dacă integrarea cu sistemul de facturare al clinicilor e gata până la 1 mai.
+[00:36] Cristina (Product Owner): Integrarea e practic gata, mai trebuie doar semnătura celor de la furnizor.
+[00:42] Victor (Tech Lead): Furnizorul nu ne-a răspuns la ultimele două e-mailuri.
+[00:46] Cristina (Product Owner): O să răspundă, sunt oameni serioși.
+[00:50] Dana (Marketing): Pentru campanie avem propunerea de cincizeci de mii de lei. Am atașat oferta agenției și defalcarea pe canale, aprobată de directorul general vineri.
+[01:01] Cristina (Product Owner): Bine, mersi.
+[01:03] Dana (Marketing): Am făcut un test cu portalul în clinica din Cluj luna trecută. Pacienții au fost foarte mulțumiți, deci portalul o să meargă la fel de bine în toate clinicile.
+[01:14] Victor (Tech Lead): Clinica din Cluj e singura care are deja programări online de doi ani. Celelalte au doar telefon.
+[01:21] Dana (Marketing): Oamenii sunt oameni peste tot.
+[01:24] Paul (Operațiuni clinici): La recepție, personalul trebuie instruit să gestioneze programările online.
+[01:30] Cristina (Product Owner): Instruirea o facem după lansare, când vedem ce întrebări apar.
+[01:36] Paul (Operațiuni clinici): În prima săptămână o să avem recepționere care nu știu să anuleze o programare din portal.
+[01:42] Cristina (Product Owner): Se descurcă ele.
+[01:45] Victor (Tech Lead): Despre performanță, am rulat un test de încărcare cu cinci sute de utilizatori simultan, timpul de răspuns a fost sub o secundă, raportul e în Confluence.
+[01:56] Cristina (Product Owner): Excelent.
+[01:58] Dana (Marketing): Portalul o să reducă apelurile la call center cu jumătate.
+[02:03] Paul (Operațiuni clinici): Pe ce se bazează jumătatea?
+[02:06] Dana (Marketing): E o tendință generală în industrie, toată lumea zice asta.
+[02:10] Cristina (Product Owner): O punem în prezentare.
+[02:13] Victor (Tech Lead): Mai e partea de GDPR. Avem nevoie de avizul responsabilului cu protecția datelor înainte de lansare.
+[02:20] Cristina (Product Owner): L-am trimis pe e-mail la DPO acum două săptămâni și nu a zis nimic, deci e în regulă.
+[02:27] Victor (Tech Lead): Poate nici nu l-a deschis.
+[02:30] Cristina (Product Owner): Dacă era o problemă, ar fi zis.
+[02:33] Paul (Operațiuni clinici): Pe partea de program, clinicile vor să vadă și listele de așteptare în portal.
+[02:39] Cristina (Product Owner): Da, adăugăm și listele de așteptare, e un câmp în plus.
+[02:43] Victor (Tech Lead): Listele de așteptare înseamnă notificări noi, reguli de prioritate și un ecran nou pentru recepție. Nu e un câmp.
+[02:51] Cristina (Product Owner): Le facem rapid.
+[02:54] Paul (Operațiuni clinici): Și pentru suport după lansare, cine răspunde la sesizările pacienților?
+[02:59] Cristina (Product Owner): Vedem, nu e cazul acum.
+[03:02] Dana (Marketing): Încă ceva: ori lansăm în toate clinicile deodată, ori nu are rost campania.
+[03:08] Victor (Tech Lead): Putem lansa în trei clinici pilot și extindem campania după două săptămâni.
+[03:13] Dana (Marketing): Nu, ori toate, ori nimic.
+[03:16] Victor (Tech Lead): La începutul ședinței am zis că lansarea depinde de integrarea cu facturarea. Acum pare că lansăm oricum.
+[03:23] Cristina (Product Owner): Facturarea nu e critică pentru programări, o putem lega mai târziu.
+[03:28] Paul (Operațiuni clinici): Fără facturare, recepția trebuie să introducă manual fiecare consultație în al doilea sistem.
+[03:34] Cristina (Product Owner): E temporar.
+[03:37] Dana (Marketing): Agenția are nevoie de confirmare azi ca să rezerve spațiile media.
+[03:42] Cristina (Product Owner): Atunci confirmăm acum. Toată lumea e de acord, nu?
+[03:46] Paul (Operațiuni clinici): Eu nu sunt sigur de instruire.
+[03:49] Cristina (Product Owner): Bun, notez că suntem de acord. Lansăm pe 15 mai, toate clinicile, cu listele de așteptare.

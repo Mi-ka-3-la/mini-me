@@ -1,0 +1,54 @@
+[00:03] Laura (Sales Director): Thanks for joining. We need to pick the CRM vendor today so procurement can start the contract.
+[00:12] Ben (IT Architect): I've put the two shortlisted vendors side by side, Northwind and Bluepeak. Both meet the core requirements.
+[00:21] Laura (Sales Director): Northwind is the obvious choice. Our biggest competitor switched to Northwind last year and their sales went up fifteen percent, so Northwind clearly drives sales.
+[00:34] Ben (IT Architect): Their sales also went up because they doubled their sales team last year.
+[00:40] Laura (Sales Director): Sure, but the numbers speak for themselves.
+[00:45] Sofia (Customer Service): From the service side, what matters is that agents can see the full ticket history.
+[00:52] Ben (IT Architect): Both vendors support that through the standard connector. I tested it on Tuesday with our sandbox data, it imported all eighteen months of tickets.
+[01:03] Laura (Sales Director): Good. On price, Northwind quoted two hundred thousand a year, and they said it includes everything.
+[01:11] Ben (IT Architect): Does everything include the data migration? Bluepeak itemised migration separately at thirty thousand.
+[01:18] Laura (Sales Director): I'm sure it's included, they said everything.
+[01:23] Sofia (Customer Service): What about the integration with our telephony system? Agents need calls logged automatically.
+[01:30] Ben (IT Architect): Northwind needs a custom adapter for our telephony. Bluepeak has it out of the box.
+[01:37] Laura (Sales Director): The adapter is a formality, their partners build those all the time.
+[01:43] Ben (IT Architect): The last custom adapter we commissioned took four months.
+[01:48] Laura (Sales Director): That was a different partner.
+[01:52] Ravi (Procurement): For the contract, I'll need the security questionnaire from whichever vendor we choose. Our policy requires it before signature.
+[02:01] Laura (Sales Director): They're a big company, their security is obviously fine.
+[02:06] Ravi (Procurement): The policy still requires the questionnaire.
+[02:10] Laura (Sales Director): Okay, okay. Somebody will chase it.
+[02:15] Ben (IT Architect): One thing on timeline. If we sign this month, Northwind says go-live in three months. Bluepeak says five.
+[02:24] Laura (Sales Director): Three months is what we need for the summer campaign.
+[02:29] Sofia (Customer Service): Does the three months include the telephony adapter?
+[02:33] Ben (IT Architect): Their plan doesn't mention the adapter at all.
+[02:37] Laura (Sales Director): We'll deal with telephony in phase two, after the campaign. Agents can log calls by hand for a while.
+[02:45] Sofia (Customer Service): That's around four hundred calls a day logged by hand.
+[02:50] Laura (Sales Director): It's temporary.
+[02:53] Ravi (Procurement): On references, I called two of Bluepeak's references last week. Both said support response times were under four hours, and one shared their SLA report with me.
+[03:05] Laura (Sales Director): We don't need references for Northwind, everyone knows them.
+[03:10] Ben (IT Architect): Earlier you said we pick based on the requirements matrix. On the matrix Bluepeak scores higher on four of the six must-haves.
+[03:19] Laura (Sales Director): The matrix doesn't capture everything. What really matters is how the sales team feels about it.
+[03:26] Ben (IT Architect): Then we should have put that in the matrix at the start.
+[03:30] Laura (Sales Director): The sales team loves Northwind. I showed them the demo and nobody said anything negative.
+[03:37] Sofia (Customer Service): How many people saw the demo?
+[03:40] Laura (Sales Director): Five or six from my team.
+[03:43] Ravi (Procurement): Out of eighty sales reps.
+[03:46] Laura (Sales Director): Look, if we don't choose Northwind, we basically stay on spreadsheets for another year.
+[03:52] Ben (IT Architect): Bluepeak would get us off spreadsheets too, just two months later.
+[03:57] Laura (Sales Director): Also, the new CRM should handle our partner portal as well. That's a small add-on.
+[04:04] Ben (IT Architect): A partner portal is a separate product at both vendors, with its own licence.
+[04:09] Laura (Sales Director): Let's just ask them to include it.
+[04:13] Ravi (Procurement): Data residency. Our customer data must stay in the EU.
+[04:18] Ben (IT Architect): Both vendors confirmed EU hosting in writing, I have the letters in the evaluation folder, signed by their legal teams.
+[04:26] Ravi (Procurement): Good.
+[04:28] Laura (Sales Director): Who will run the project on our side?
+[04:31] Ben (IT Architect): We haven't named a project manager yet.
+[04:34] Laura (Sales Director): We'll find someone. Let's not slow down.
+[04:38] Sofia (Customer Service): And training for the service agents, who owns that?
+[04:42] Laura (Sales Director): The vendor will handle training, that's normal.
+[04:46] Ben (IT Architect): Neither quote includes training days.
+[04:50] Laura (Sales Director): Right. So, are we agreed on Northwind? Silence is consent, I'll take that as a yes.
+[04:57] Ravi (Procurement): I'd like to see the full Northwind price breakdown first.
+[05:01] Laura (Sales Director): Procurement has to start the contract today or we miss the summer campaign.
+[05:07] Ben (IT Architect): I'd rather lose two weeks than sign without the breakdown and the adapter plan.
+[05:12] Laura (Sales Director): Noted. I'll send the decision to the board tonight.

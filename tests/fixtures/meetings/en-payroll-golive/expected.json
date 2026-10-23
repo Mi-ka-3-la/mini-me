@@ -1,0 +1,33 @@
+{
+  "language": "en-US",
+  "title": "Payroll integration go-live",
+  "planted": [
+    { "id": "p1", "type": "trap", "quote": "Absences are a small thing, they'll come over fine.", "note": "Dependency dismissed: historical absences were not cleaned; the dry run decides the date." },
+    { "id": "p2", "type": "trap", "quote": "That's just paperwork with the bank, someone will sort it out.", "note": "Dependency dismissed, no owner; bank needs 2-3 weeks." },
+    { "id": "p3", "type": "trap", "quote": "the new system will reduce payroll processing costs by thirty percent.", "note": "Number with no source." },
+    { "id": "p4", "type": "trap", "quote": "We'll fix any issues with it after go-live.", "note": "Risk shifted to after go-live; scope creep." },
+    { "id": "p5", "type": "trap", "quote": "We need a yes today, the steering committee meets tomorrow.", "note": "Pressure to decide now." },
+    { "id": "p6", "type": "logic", "quote": "The January parallel run had zero differences, so the system is clearly correct.", "note": "Hasty generalization: January had no overtime or bonuses." },
+    { "id": "p7", "type": "logic", "quote": "And the vendor are the experts, so we can take that number into the business case.", "note": "Appeal to authority instead of evidence." },
+    { "id": "p8", "type": "logic", "quote": "There are only two options here. Either we switch it off on day one and save the licence, or we keep it running in full for a year.", "note": "False dilemma; read-only option exists." },
+    { "id": "p9", "type": "logic", "quote": "I've already shown the works council the draft and nobody objected, so it's approved.", "note": "Silence as approval; the draft was not the final version." },
+    { "id": "p10", "type": "logic", "quote": "Nobody's raised any concerns, so we're all agreed on the first of March with one parallel run.", "note": "Agreement assumed from silence, contradicted by Finance right after." },
+    { "id": "p11", "type": "question", "quote": "We'll figure that out. Let's not get stuck on that today.", "note": "No owner for the training material." },
+    { "id": "p12", "type": "question", "quote": "The dry run will pass, the data is clean. We cleaned it in December.", "note": "What happens to the date if the dry run fails (10 working days)?" },
+    { "id": "p13", "type": "trap", "quote": "And while you're at it, the journal should also split costs by project code. Small thing.", "note": "Scope creep phrased as a detail." }
+  ],
+  "acceptable": [
+    { "quote": "It's basically the same.", "note": "Works council saw a draft without the deduction lines." },
+    { "quote": "Let's keep the number for now, we can refine it later." },
+    { "quote": "It's a small change, let's just add it into the March release." },
+    { "quote": "So we keep the first of March as the go-live date." },
+    { "quote": "Let's not complicate this. I'll note we switch it off." },
+    { "quote": "So the first of March it is. Thanks everyone." },
+    { "quote": "The HR team will be trained in the last week of February." }
+  ],
+  "decoys": [
+    { "quote": "I've pre-approved that, it's covered by the Q1 contingency, the CFO signed it last Thursday.", "note": "Sounds like an assumption but has owner, source and date." },
+    { "quote": "Andrei is on call that weekend, his manager confirmed it in writing.", "note": "Owner named and confirmed." },
+    { "quote": "we sent the user list to IT on Friday and IT confirmed accounts will be ready by the twentieth of February.", "note": "Owner and date confirmed." }
+  ]
+}

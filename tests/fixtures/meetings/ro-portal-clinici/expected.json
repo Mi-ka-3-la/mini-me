@@ -1,0 +1,35 @@
+{
+  "language": "ro-RO",
+  "title": "Lansare portal programări clinici",
+  "planted": [
+    { "id": "p1", "type": "trap", "quote": "Integrarea e practic gata, mai trebuie doar semnătura celor de la furnizor.", "note": "Dependență minimalizată; furnizorul nu răspunde." },
+    { "id": "p2", "type": "logic", "quote": "Pacienții au fost foarte mulțumiți, deci portalul o să meargă la fel de bine în toate clinicile.", "note": "Generalizare pripită dintr-un singur caz atipic." },
+    { "id": "p3", "type": "trap", "quote": "Instruirea o facem după lansare, când vedem ce întrebări apar.", "note": "Risc mutat după lansare." },
+    { "id": "p4", "type": "trap", "quote": "Portalul o să reducă apelurile la call center cu jumătate.", "note": "Cifră fără sursă." },
+    { "id": "p5", "type": "logic", "quote": "E o tendință generală în industrie, toată lumea zice asta.", "note": "Apel la popularitate în loc de dovezi." },
+    { "id": "p6", "type": "logic", "quote": "L-am trimis pe e-mail la DPO acum două săptămâni și nu a zis nimic, deci e în regulă.", "note": "Tăcere considerată aprobare." },
+    { "id": "p7", "type": "trap", "quote": "Da, adăugăm și listele de așteptare, e un câmp în plus.", "note": "Extindere de scope prezentată ca detaliu." },
+    { "id": "p8", "type": "question", "quote": "Vedem, nu e cazul acum.", "note": "Fără responsabil pentru suportul post-lansare." },
+    { "id": "p9", "type": "logic", "quote": "ori lansăm în toate clinicile deodată, ori nu are rost campania.", "note": "Fals dilemă; există varianta pilot." },
+    { "id": "p10", "type": "logic", "quote": "Facturarea nu e critică pentru programări, o putem lega mai târziu.", "note": "Contradicție cu afirmația de la început că lansarea depinde de integrare." },
+    { "id": "p11", "type": "trap", "quote": "Bun, notez că suntem de acord. Lansăm pe 15 mai, toate clinicile, cu listele de așteptare.", "note": "Acord presupus, deși operațiunile au obiectat." },
+    { "id": "p12", "type": "question", "quote": "O să răspundă, sunt oameni serioși.", "note": "Ce se întâmplă cu data dacă integrarea nu e gata la 1 mai? Cine urmărește furnizorul?" }
+  ],
+  "acceptable": [
+    { "quote": "Se descurcă ele." },
+    { "quote": "Oamenii sunt oameni peste tot." },
+    { "quote": "O punem în prezentare." },
+    { "quote": "Dacă era o problemă, ar fi zis." },
+    { "quote": "Le facem rapid." },
+    { "quote": "E temporar." },
+    { "quote": "Atunci confirmăm acum. Toată lumea e de acord, nu?" },
+    { "quote": "Agenția are nevoie de confirmare azi ca să rezerve spațiile media." },
+    { "quote": "Lansăm pe 15 mai în toate cele douăsprezece clinici." },
+    { "quote": "Nu, ori toate, ori nimic." }
+  ],
+  "decoys": [
+    { "quote": "Am atașat oferta agenției și defalcarea pe canale, aprobată de directorul general vineri.", "note": "Buget cu sursă și aprobare." },
+    { "quote": "am rulat un test de încărcare cu cinci sute de utilizatori simultan, timpul de răspuns a fost sub o secundă, raportul e în Confluence.", "note": "Afirmație susținută de test." },
+    { "quote": "programarea online și confirmarea prin SMS sunt gata și testate pe staging.", "note": "Testat." }
+  ]
+}
