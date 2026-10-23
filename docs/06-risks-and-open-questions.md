@@ -39,9 +39,20 @@ These were checked against vendor documentation on the planning date. Re-check t
 | Current Anthropic API model ids: `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`. | platform.claude.com/docs/en/models/overview |
 | Web Speech API `SpeechRecognition` has limited browser availability (MDN). Chrome exposes it as `webkitSpeechRecognition`. | developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition/continuous |
 
+### Added at the Phase 0 plan check (23 Oct 2026)
+
+| Fact | Source |
+|---|---|
+| Vercel Functions offer Node 24.x (default) and 22.x. Node 20 was deprecated on 1 Oct 2026. | vercel.com/docs/functions/runtimes/node-js/node-js-versions |
+| With Fluid compute, Hobby functions run up to 300 s (default and maximum). Request and response bodies are limited to 4.5 MB. | vercel.com/docs/functions/limitations |
+| Anthropic JSON outputs: `output_config.format` with `type: "json_schema"`, GA, supported on `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`. Objects need `additionalProperties: false`. `maxItems` and string length limits are not supported; `minItems` only 0 or 1. `stop_reason` `max_tokens` or `refusal` can return output that does not match the schema. The TypeScript SDK has a `zodOutputFormat` helper. | platform.claude.com/docs/en/build-with-claude/structured-outputs |
+| Web Speech `SpeechRecognition` now has `processLocally`, `available()` and `install()` for on-device recognition, and `start()` can take an audio track. Chrome uses a server-based engine by default, so recognition does not work offline. | developer.mozilla.org/docs/Web/API/SpeechRecognition |
+| On iOS Safari, `continuous` recognition is unreliable: it stops on its own and the first attempt often fails; recognition dies when the page goes to the background. A developer report says it stops working after "Add to Home Screen" (no official answer). | lilting.ch/en/articles/ios-webspeech-api-tips; developer.apple.com/forums/thread/748048 |
+
+**Still not verified:** Edge's behaviour with `webkitSpeechRecognition`, Romanian availability per browser, whether Android Chrome plays a system sound on each restart. These are covered by the Phase 0 device checklist.
+
 **Not verified, from general knowledge:**
 - Android's audio playback capture excludes voice-communication audio, so call audio cannot be captured.
 - iPadOS gives no app access to another app's call audio.
-- Chromium's speech recognition sends audio to a vendor cloud service.
 
 Confirm these in T1.0 if a decision depends on them.

@@ -3,7 +3,7 @@
 Work in phases. Each phase ends with something usable in a real meeting. Do not start a phase until the previous one is merged and Mihaela has tried it. Each task lists the user stories it serves (`US-xx`, from `01-product-spec.md`).
 
 Conventions:
-- One branch and one pull request per task group. Branch name: `phase0/T0.3-transcriber`.
+- One branch and one pull request per task. Branch name: `phase0/T0.5-transcriber`.
 - PR description: what changed, which US/AC it covers, how it was tested, screenshots for UI.
 - Keep `main` deployable. Vercel deploys previews for every PR.
 

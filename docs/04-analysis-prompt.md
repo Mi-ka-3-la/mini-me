@@ -44,9 +44,9 @@ The model receives the definitions below. Examples are given in English; the mod
 ```
 You are watching a live business meeting and helping one participant, the listener, react in time.
 You receive your previous analysis and the most recent part of the transcript.
-Return the complete, updated analysis of the whole meeting so far by calling the tool report_analysis.
+Return the complete, updated analysis of the whole meeting so far as JSON that matches the provided schema.
 
-LANGUAGE: Write every field in {{languageName}}, the language of the meeting.
+LANGUAGE: Write every field in {{languageName}}, the language of the meeting. For Romanian, use correct diacritics (ă, â, î, ș, ț).
 
 LISTENER'S CONTEXT (what they care about; prioritize it):
 {{context or "none given"}}
@@ -73,7 +73,7 @@ TASKS
    - who: the speaker label if known, else empty.
    - id: reuse the id of a previous flag you keep (even if you edit its wording). New flags: leave id empty.
    - Drop a previous flag only if later discussion clearly resolved it.
-   - Never raise again anything whose quote appears in DISMISSED.
+   - Never raise again anything whose quote appears in DISMISSED or ALREADY ASKED.
    - At most 12 flags in total.
 4. Do not invent facts, owners, dates or numbers. If unsure, leave it out.
 
@@ -83,6 +83,9 @@ PREVIOUS ANALYSIS (JSON):
 DISMISSED BY THE LISTENER (do not raise again):
 {{dismissed quotes or "none"}}
 
+ALREADY ASKED BY THE LISTENER (do not raise again):
+{{asked flags as "title — quote", or "none"}}
+
 TRANSCRIPT {{"(earlier part omitted; it is reflected in the previous analysis)" if trimmed}}:
 {{transcript lines "[mm:ss] Speaker: text"}}
 ```
@@ -90,49 +93,50 @@ TRANSCRIPT {{"(earlier part omitted; it is reflected in the previous analysis)" 
 ## 4. System prompt
 
 ```
-You are a precise, neutral meeting analyst. You point out reasoning gaps and hidden commitments so that one participant can ask better questions in the moment. You never judge people, only statements. You prefer saying less over saying something unsupported. Always answer by calling the provided tool.
+You are a precise, neutral meeting analyst. You point out reasoning gaps and hidden commitments so that one participant can ask better questions in the moment. You never judge people, only statements. You prefer saying less over saying something unsupported.
 ```
 
-## 5. Tool definition (structured output)
+## 5. Output schema (structured output)
+
+Sent as `output_config.format = {type: "json_schema", schema: <below>}` (ADR-10). JSON outputs require `additionalProperties: false` on every object and do not accept `maxItems`, so the cap of 12 is enforced by the server.
 
 ```json
 {
-  "name": "report_analysis",
-  "description": "Report the full updated meeting analysis.",
-  "input_schema": {
-    "type": "object",
-    "required": ["tldr", "topics", "flags"],
-    "properties": {
-      "tldr": {"type": "string"},
-      "topics": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": ["topic", "points", "decisions", "actions", "open"],
-          "properties": {
-            "topic": {"type": "string"},
-            "points": {"type": "array", "items": {"type": "string"}},
-            "decisions": {"type": "array", "items": {"type": "string"}},
-            "actions": {"type": "array", "items": {"type": "string"}},
-            "open": {"type": "array", "items": {"type": "string"}}
-          }
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tldr", "topics", "flags"],
+  "properties": {
+    "tldr": {"type": "string"},
+    "topics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["topic", "points", "decisions", "actions", "open"],
+        "properties": {
+          "topic": {"type": "string"},
+          "points": {"type": "array", "items": {"type": "string"}},
+          "decisions": {"type": "array", "items": {"type": "string"}},
+          "actions": {"type": "array", "items": {"type": "string"}},
+          "open": {"type": "array", "items": {"type": "string"}}
         }
-      },
-      "flags": {
-        "type": "array",
-        "maxItems": 12,
-        "items": {
-          "type": "object",
-          "required": ["id", "type", "title", "quote", "why", "ask", "who"],
-          "properties": {
-            "id": {"type": "string"},
-            "type": {"type": "string", "enum": ["trap", "logic", "question"]},
-            "title": {"type": "string"},
-            "quote": {"type": "string"},
-            "why": {"type": "string"},
-            "ask": {"type": "string"},
-            "who": {"type": "string"}
-          }
+      }
+    },
+    "flags": {
+      "type": "array",
+      "description": "At most 12 items.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "type", "title", "quote", "why", "ask", "who"],
+        "properties": {
+          "id": {"type": "string"},
+          "type": {"type": "string", "enum": ["trap", "logic", "question"]},
+          "title": {"type": "string"},
+          "quote": {"type": "string"},
+          "why": {"type": "string"},
+          "ask": {"type": "string"},
+          "who": {"type": "string"}
         }
       }
     }
@@ -140,12 +144,12 @@ You are a precise, neutral meeting analyst. You point out reasoning gaps and hid
 }
 ```
 
-The server assigns ids `f-<n>` to flags returned with an empty id.
+The server assigns random ids `f-xxxxxxxx` to flags returned with an empty id (ADR-7). An id the model returns that is not among the previous flags is also replaced.
 
 ## 6. Server-side post-checks
 
 Apply these after the model answers, before returning to the client:
-- **Quote grounding.** Normalize the text (lowercase, collapse whitespace, strip punctuation) and check that each flag's quote appears in the transcript window or in the previous flags. Drop flags that fail. This is the main defence against invented flags. Fuzzy matching with a token overlap of 0.85 or more is acceptable, since STT and model punctuation differ.
+- **Quote grounding.** Normalize the text as in ADR-17 (remove diacritics, unify ș/ş and ț/ţ, lowercase, collapse whitespace, strip punctuation) and check that each flag's quote appears in the transcript window or in the previous flags. Drop flags that fail. This is the main defence against invented flags. Fuzzy matching with a token overlap of 0.85 or more is acceptable, since STT and model punctuation differ.
 - **Cap.** Keep at most 12 flags.
 - **Dismissed filter.** Drop flags whose normalized quote matches a dismissed one.
 
@@ -158,6 +162,19 @@ Create `tests/fixtures/meetings/` with 4 short transcripts (5–8 minutes each),
 - **precision**: how many flags match a planted item;
 - **decoy hits**: how many decoys were flagged (should be 0);
 - **stability**: share of flag ids kept between chunk 2 and chunk 3.
+
+`expected.json` per fixture:
+```json
+{
+  "language": "en-US",
+  "planted": [{"id": "p1", "type": "trap", "quote": "it's a formality"}],
+  "acceptable": [{"quote": "..."}],
+  "decoys": [{"quote": "..."}]
+}
+```
+A flag counts toward precision if it matches a planted or an acceptable item; `acceptable` lists sound flags that were not planted, so they do not count as false positives. Fixtures and `expected.json` are written by Claude Code, and Mihaela reviews them (at least the Romanian ones), because otherwise the same model family writes the test and takes it.
+
+`npm run eval` calls the analysis function directly (ADR-14) and needs `ANTHROPIC_API_KEY`. It runs from the GitHub Actions workflow `Eval` (manual trigger, key stored as a repository secret) or locally. It also reports latency p50/p95 per call, because of the 15 s target in `01` §7.
 
 Run it before and after every prompt change. Record the results in `docs/eval-log.md`.
 

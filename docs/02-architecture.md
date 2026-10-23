@@ -28,10 +28,10 @@ The browser does the listening and the display. The server exists for one reason
 
 | Layer | Choice | Why |
 |---|---|---|
-| Frontend | Vite + React 18 + TypeScript | Small, fast and well known. Claude Code works well with it. |
+| Frontend | Vite + React 19 + TypeScript (see ADR-6) | Small, fast and well known. Claude Code works well with it. |
 | Styling | Plain CSS with design tokens (CSS variables), light and dark | Matches the prototype. No UI library needed. |
 | State | React state + a small store (Zustand) | Transcript, speakers, analysis state and UI flags are shared across three columns. |
-| Server | Vercel serverless functions in `/api` (Node 20, TypeScript) | Same repo, free tier, HTTPS by default. HTTPS is required for microphone access. |
+| Server | Vercel serverless functions in `/api` (Node 24, TypeScript; see ADR-6) | Same repo, free tier, HTTPS by default. HTTPS is required for microphone access. |
 | LLM | Anthropic Messages API via `@anthropic-ai/sdk` | Model set by env var `ANALYSIS_MODEL`. Default: `claude-sonnet-5-5`. |
 | STT Phase 0 | Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`) | Free, no account, no server. Quality and browser support vary (R2). |
 | STT Phase 1 | AssemblyAI Streaming v3 with `speaker_labels: true` | Streaming diarization exists, and Romanian is listed for real-time on its language page. Must be verified in spike T1.0 before committing. |
@@ -110,7 +110,7 @@ type Topic = {
 type FlagType = 'trap' | 'logic' | 'question';
 
 type Flag = {
-  id: string;          // stable; model reuses it, or the client assigns f-<n>
+  id: string;          // stable; model reuses it, or the server assigns a random f-xxxxxxxx (ADR-7)
   type: FlagType;
   title: string;
   quote: string;       // verbatim, ≤ 25 words
@@ -153,7 +153,7 @@ If new words arrive while a call is running, set `pending = true`. When the call
 **Input window:**
 - Previous `AnalysisState`, which carries the meeting so far in compressed form.
 - The **last 15 minutes** of transcript, or the last ~12 000 characters if shorter. Older text is represented only by the previous state.
-- User context (US-06), speaker map, and the list of dismissed flag quotes (so they are not raised again).
+- User context (US-06), speaker map, the list of dismissed flag quotes, and the list of flags already asked (so neither is raised again). `previous.flags` holds active and pinned flags only (ADR-8).
 
 **Output handling** (`mergeFlags.ts`):
 - Flags with an id that already exists: update the text, keep the client `status` and `firstSeenAt`.
@@ -161,7 +161,7 @@ If new words arrive while a call is running, set `pending = true`. When the call
 - Active flags missing from the output: remove them (the model judged them resolved). **Pinned and asked flags are never removed by the model.**
 - A flag whose normalized quote matches a dismissed flag: drop it.
 
-**Cost controls:** count calls per session and show the count. Hard cap per session through `MAX_CALLS_PER_SESSION` (default 150), after which only manual **Analyze now** works. Model is configurable.
+**Cost controls:** count calls per session and show the count. Cap per session through `MAX_CALLS_PER_SESSION` (default 150), after which only manual **Analyze now** works. The cap is enforced in the browser, which is the only place that knows the session; the value comes from `GET /api/config` (ADR-9). Model is configurable.
 
 ## 6. `/api/analyze` contract
 
@@ -173,6 +173,7 @@ Request:
   "speakers": {"A": "Client PM", "B": "Speaker B"},
   "previous": { "tldr": "...", "topics": [], "flags": [{"id":"f-3","type":"trap","title":"...","quote":"...","why":"...","ask":"...","who":"..."}] },
   "dismissedQuotes": ["..."],
+  "askedFlags": [{"title":"...","quote":"..."}],
   "transcript": "[12:03] Client PM: ...\n[12:10] Speaker B: ...",
   "transcriptTrimmed": true
 }
@@ -180,13 +181,13 @@ Request:
 Header: `x-app-passcode: <passcode>`.
 
 Response 200: `AnalysisState` without the client-only fields.
-Errors: `401` wrong passcode, `413` input too large, `429` rate limited (pass through `retry-after`), `502` upstream or invalid output. The body is always `{ "error": "<code>", "message": "<human text>" }`.
+Errors: `400 bad_request` invalid body, `401 unauthorized` wrong passcode, `413 too_large` input too large, `429 rate_limited` (pass through `retry-after`), `500 server_misconfigured` env var missing, `502 upstream_error` / `upstream_overloaded` / `invalid_output`, `504 upstream_timeout`. The body is always `{ "error": "<code>", "message": "<human text>" }`.
 
 Server rules:
 - Validate the request body with zod, and reject anything over 200 KB.
-- Get structured output by **forcing a tool call**. Define one tool `report_analysis` whose `input_schema` is the AnalysisState JSON schema, and set `tool_choice: {type: "tool", name: "report_analysis"}`. Read `tool_use.input`. This is more reliable than parsing free text. Claude Code should check the current Anthropic docs for a native structured-output option and use it if available.
+- Get structured output with the native **JSON outputs** feature: `output_config.format = {type: "json_schema", schema}` (GA, verified 23 Oct 2026, ADR-10). The schema cannot carry `maxItems`, so the 12-flag cap is enforced on the server.
 - Validate the model output with zod. On failure, retry once with the validation error appended. If it fails again, return 502.
-- `max_tokens`: 4000. Timeout: 60 s.
+- `max_tokens`: 4000. Time budget: 50 s for the first attempt; the retry runs only if at least 20 s of a 75 s total budget remain. `maxDuration` of the function: 90 s. SDK automatic retries are off, so the budget is ours.
 - Log only timing, token counts and error codes. **Never log transcript content.**
 
 ## 7. Transcriber interface
@@ -205,6 +206,8 @@ interface Transcriber {
 - `continuous = true`, `interimResults = true`, `lang` from the session.
 - Browsers end recognition sessions on their own after silence or a time limit. On `onend` while the user has not pressed Stop, restart after 250 ms. Back off up to 5 s on repeated errors.
 - `onerror` `not-allowed` / `service-not-allowed`: stop and show the permission help. `network`: reconnecting status. `no-speech`: ignore and restart.
+- Web Speech always uses the default microphone, so `deviceId` is ignored in Phase 0.
+- Hold a Screen Wake Lock while listening (ADR-16). On iOS, recognition dies when the page goes to the background; on `visibilitychange` back to visible, restart.
 - Feature-detect `window.SpeechRecognition || window.webkitSpeechRecognition`. If absent, show "This browser cannot transcribe. Use Chrome or Edge, or paste captions." and keep manual input.
 - One language per session. Mixed RO/EN speech will be transcribed poorly. This is a known limit, and the UI says so near the language picker.
 
@@ -224,9 +227,9 @@ interface Transcriber {
 ## 8. Security
 
 - `APP_PASSCODE` is checked with a constant-time compare on every API call. The browser keeps it in `localStorage` and sends it as a header.
-- Rate limit per IP on `/api/*`: 30 req/min, in memory, best effort.
+- Rate limit per IP on `/api/*`: 30 req/min, in memory, best effort. Each serverless instance has its own memory, so this only slows a single burst; the real protections are the passcode and the spend limit in the Claude Console (ADR-11).
 - CORS: same origin only.
-- CSP: default-src 'self'. connect-src 'self' plus the STT WebSocket host.
+- CSP: default-src 'self'. connect-src 'self' plus the STT WebSocket host (Phase 1). Fonts are bundled with the app (`@fontsource`), so no font host is needed (ADR-12).
 - No transcript in server logs, no analytics SDKs.
 - `.env` is never committed. `.env.example` lists the variable names only.
 
@@ -237,5 +240,20 @@ interface Transcriber {
 | `ANTHROPIC_API_KEY` | 0 | LLM calls |
 | `APP_PASSCODE` | 0 | Gate for all API routes |
 | `ANALYSIS_MODEL` | 0 | Default `claude-sonnet-5-5`. Can be switched to `claude-haiku-5-5` (faster, cheaper) or `claude-opus-5-5` (deeper). |
-| `MAX_CALLS_PER_SESSION` | 0 | Default 150 |
+| `MAX_CALLS_PER_SESSION` | 0 | Default 150. Read by `/api/config` and enforced in the browser. |
 | `ASSEMBLYAI_API_KEY` | 1 | STT token minting |
+
+## 10. Decision records added at the Phase 0 plan check (23 Oct 2026)
+
+- **ADR-6: React 19 and Node 24.** Vercel deprecated Node 20 on 1 Oct 2026 and offers 24.x (default) and 22.x (vercel.com/docs/functions/runtimes/node-js/node-js-versions). React 19 is the current major. Nothing in the spec depends on React 18.
+- **ADR-7: Random flag ids on the server.** The server is stateless, so a counter `f-<n>` can only be derived from `previous`. Dismissed flags are not in `previous`, so a counter could reissue a dismissed id, and the client would then hide a new flag. Ids are `f-` plus 8 random characters. On merge, a known id that arrives with a quote that does not match its old quote is treated as a new flag.
+- **ADR-8: Asked flags go in their own list.** `previous.flags` holds active and pinned flags. Asked flags are sent as `askedFlags` (title and quote) with the rule "do not raise again". The 12-flag cap applies to what the model returns; pinned flags the model drops stay on screen.
+- **ADR-9: The call cap lives in the browser.** The server stores nothing, so it cannot count calls per session, and Vite exposes only `VITE_` variables to the browser. `GET /api/config` (passcode-protected) returns `maxCallsPerSession`. This is a cost guard, not a security control.
+- **ADR-10: JSON outputs instead of a forced tool call.** Anthropic offers native structured output, `output_config.format` with `type: "json_schema"`, GA on the 5.5 models. Constraints: `additionalProperties: false` on every object, no `maxItems`, `minItems` only 0 or 1. Output is still validated with zod; `stop_reason` `max_tokens` or `refusal` counts as invalid output and gets the one retry.
+- **ADR-11: Best-effort rate limit.** Kept as specified, with the limitation stated in §8.
+- **ADR-12: Bundled fonts.** The prototype loads Google Fonts; a strict CSP blocks them. Bricolage Grotesque, IBM Plex Sans and IBM Plex Mono are bundled via `@fontsource`.
+- **ADR-13: Local dev without a Vercel account.** `npm run dev` runs Vite with the `/api` handlers mounted as middleware, so it works without logging in to Vercel and in CI. `npm run dev:vercel` runs `vercel dev` for a faithful check.
+- **ADR-14: Handlers are plain functions.** Each route is a function `(request) -> response` in `api/_lib/`, wrapped by a thin Vercel adapter in `api/*.ts` and by the dev middleware. This keeps them unit-testable and lets `npm run eval` call the analysis directly, without a server.
+- **ADR-15: Passcode check endpoint.** `GET /api/ping` validates the passcode at entry. The passcode screen offers "Continue without analysis", so transcription works without a valid code (checklist item 8). A later 401 shows a banner; transcription continues.
+- **ADR-16: Screen wake lock.** While listening, the app holds a Screen Wake Lock so the tablet does not lock and stop recognition. If the browser does not support it, the start panel says so.
+- **ADR-17: Romanian-aware quote normalization.** Before any quote comparison: Unicode NFD, remove combining marks, map ş/ș to s and ţ/ț to t, lowercase, strip punctuation, collapse whitespace. "Token overlap ≥ 0.85" means: the share of the quote's tokens found, in order-insensitive form, inside some window of the transcript of the same length (±2 tokens).

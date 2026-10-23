@@ -27,7 +27,8 @@ A browser app that listens to a meeting and shows, live, the transcript, a runni
 - At the end of each phase, update `README.md` with how to run and what works.
 
 ## Commands (to be created in T0.1)
-- `npm run dev` — UI + functions locally (`vercel dev`)
+- `npm run dev` — UI + functions locally (Vite with the API mounted; no Vercel login)
+- `npm run dev:vercel` — the same through `vercel dev`
 - `npm test` — Vitest
 - `npm run lint`
 - `npm run eval` — prompt evaluation against `tests/fixtures/meetings/`
