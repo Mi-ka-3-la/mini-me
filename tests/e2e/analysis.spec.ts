@@ -32,6 +32,15 @@ export async function unlock(page: Page) {
   await expect(page.getByRole('heading', { name: 'Live transcript' })).toBeVisible();
 }
 
+/** Opens a column: on narrow screens it is a tab, on desktop a region. */
+export async function openColumn(page: Page, tab: string, title: string) {
+  if ((page.viewportSize()?.width ?? 1280) <= 980) {
+    await page.getByRole('tab', { name: tab }).click();
+    return page.getByRole('tabpanel', { name: tab });
+  }
+  return page.getByRole('region', { name: title });
+}
+
 export async function paste(page: Page, text: string) {
   await page.getByLabel('Paste captions or type notes').fill(text);
   await page.getByRole('button', { name: 'Add to transcript' }).click();
@@ -87,4 +96,33 @@ test('a refused passcode pauses analysis and offers to re-enter it', async ({ pa
   await expect(page.getByRole('button', { name: 'Analyze now' })).toBeDisabled();
   await paste(page, 'transcript continues');
   await expect(page.getByText('transcript continues')).toBeVisible();
+});
+
+test('summary shows "So far" and tagged topic items, and stays while the next update runs', async ({
+  page,
+}) => {
+  await installFakeSpeech(page);
+  let release: () => void = () => {};
+  let n = 0;
+  await page.route('**/api/analyze', async (route) => {
+    n++;
+    if (n === 2) await new Promise<void>((r) => (release = r));
+    await route.fulfill({ json: OUTPUT });
+  });
+  await unlock(page);
+  await paste(page, LONG);
+  await expect(page.getByTestId('call-counter')).toHaveText('1/150 analyses');
+  const summary = await openColumn(page, 'Summary', 'Running summary');
+  await expect(summary.getByText('So far')).toBeVisible();
+  await expect(summary.getByRole('heading', { name: 'Go-live date' })).toBeVisible();
+  for (const tag of ['Decided', 'Action', 'Open'])
+    await expect(summary.getByText(tag, { exact: true })).toBeVisible();
+  await openColumn(page, 'Transcript', 'Live transcript');
+  await paste(page, 'Dev lead: one more line');
+  await page.getByRole('button', { name: 'Analyze now' }).click();
+  await openColumn(page, 'Summary', 'Running summary');
+  await expect(summary.getByText(/updating…/)).toBeVisible();
+  await expect(summary.getByText('So far')).toBeVisible();
+  release();
+  await expect(summary.getByText(/updating…/)).toBeHidden();
 });

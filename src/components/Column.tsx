@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { NARROW, useMediaQuery } from '../lib/useMediaQuery';
 
 type Props = {
   id: string;
@@ -9,14 +10,14 @@ type Props = {
   headExtra?: ReactNode;
 };
 
+/** A region on desktop; a tab panel when the columns become tabs. */
 export function Column({ id, title, count, hidden, children, headExtra }: Props) {
+  const narrow = useMediaQuery(NARROW);
   return (
     <section
       className="col"
       id={`col-${id}`}
-      role="tabpanel"
-      aria-labelledby={`tab-${id}`}
-      aria-label={title}
+      {...(narrow ? { role: 'tabpanel', 'aria-labelledby': `tab-${id}` } : { 'aria-label': title })}
       data-hidden={hidden ? 'true' : 'false'}
     >
       <div className="colhead">
