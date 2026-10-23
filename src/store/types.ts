@@ -39,5 +39,10 @@ export type Session = {
   flags: ClientFlag[];
   analyzedUpToLineIndex: number;
   analysisCalls: number;
+  /** epoch ms of the last watch call */
   lastAnalysisAt: number | null;
+  /** lines up to this index are covered by the summary */
+  summaryUpToLineIndex: number;
+  /** epoch ms of the last summary call */
+  lastSummaryAt: number | null;
 };

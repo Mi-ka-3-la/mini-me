@@ -46,3 +46,35 @@ describe('scheduler (docs/02 §5)', () => {
     expect(backoffMs(1, 7)).toBe(7000);
   });
 });
+
+import { decideSummary, SUMMARY_EVERY_MS } from '../../src/analysis/scheduler';
+
+describe('summary cadence (ADR-19)', () => {
+  const s = {
+    running: false,
+    newWords: 0,
+    sinceLastMs: 0,
+    manual: false,
+    callsUsed: 0,
+    maxCalls: 150,
+    retryAt: 0,
+    now: 1000,
+    canCall: true,
+    noSummaryYet: false,
+  };
+  it('first summary at 150 words, then every 3 minutes with ≥ 60 new words', () => {
+    expect(decideSummary({ ...s, noSummaryYet: true, newWords: 150 }).run).toBe(true);
+    expect(decideSummary({ ...s, newWords: 400, sinceLastMs: SUMMARY_EVERY_MS - 1 }).run).toBe(
+      false,
+    );
+    expect(decideSummary({ ...s, newWords: 60, sinceLastMs: SUMMARY_EVERY_MS }).run).toBe(true);
+    expect(decideSummary({ ...s, newWords: 59, sinceLastMs: SUMMARY_EVERY_MS }).run).toBe(false);
+  });
+  it('Analyze now and the usual guards', () => {
+    expect(decideSummary({ ...s, manual: true, newWords: 1 }).run).toBe(true);
+    expect(decideSummary({ ...s, running: true, manual: true, newWords: 1 }).run).toBe(false);
+    expect(decideSummary({ ...s, newWords: 500, sinceLastMs: 1e9, callsUsed: 150 }).reason).toBe(
+      'cap',
+    );
+  });
+});

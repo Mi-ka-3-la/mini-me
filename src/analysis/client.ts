@@ -1,12 +1,13 @@
-import { analysisOutputSchema } from '../../shared/schema';
-import type { AnalysisOutput } from '../../shared/types';
+import { summaryOutputSchema, watchResponseSchema } from '../../shared/schema';
+import type { ModelFlag, Topic } from '../../shared/types';
 import type { AnalyzeRequestInput } from '../../shared/schema';
 import { apiFetch, type ApiError } from '../lib/api';
 
 /** Client-side ceiling: a little above the server's 90 s maxDuration. */
 export const CLIENT_TIMEOUT_MS = 95_000;
 
-export type AnalyzeResult = { ok: true; data: AnalysisOutput } | { ok: false; error: ApiError };
+export type AnalyzeData = { flags: ModelFlag[] } | { tldr: string; topics: Topic[] };
+export type AnalyzeResult = { ok: true; data: AnalyzeData } | { ok: false; error: ApiError };
 
 export async function callAnalyze(
   body: AnalyzeRequestInput,
@@ -30,11 +31,14 @@ export async function callAnalyze(
       }
       return res;
     }
-    const parsed = analysisOutputSchema.safeParse(res.data);
+    const parsed =
+      body.mode === 'watch'
+        ? watchResponseSchema.safeParse(res.data)
+        : summaryOutputSchema.safeParse(res.data);
     if (!parsed.success) {
       return { ok: false, error: { status: 200, code: 'invalid_output', message: 'Malformed.' } };
     }
-    return { ok: true, data: parsed.data as AnalysisOutput };
+    return { ok: true, data: parsed.data as AnalyzeData };
   } finally {
     clearTimeout(timer);
     signal.removeEventListener('abort', onAbort);

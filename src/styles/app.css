@@ -693,3 +693,25 @@ details.asked-section summary {
     gap: 6px;
   }
 }
+
+/* Added (ADR-19): the newest flag reads first, in larger type; other cards keep "why" behind a tap. */
+.flag.featured {
+  padding: 12px 14px;
+}
+.flag.featured .title {
+  font-size: 16px;
+}
+.flag.featured .ask {
+  font-size: 15px;
+  font-weight: 500;
+}
+.flag .ask-now {
+  color: var(--ink);
+  font-weight: 600;
+}
+.flag .ask {
+  margin: 2px 0 4px;
+}
+.why-toggle {
+  font-size: 12px;
+}

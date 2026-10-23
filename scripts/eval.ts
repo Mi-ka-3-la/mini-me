@@ -1,24 +1,27 @@
 /**
  * Prompt evaluation (docs/04-analysis-prompt.md §7).
  *
- * For each fixture in tests/fixtures/meetings/, feeds the transcript to the analysis in 3 chunks,
- * the way the live app does (same request builder and flag merge as the browser), then scores the
- * final watch list against expected.json:
+ * For each fixture in tests/fixtures/meetings/, feeds the transcript in 6 chunks of about a minute,
+ * the way the live app does (same request builders and flag merge as the browser): a watch call
+ * after every chunk, a summary call after chunks 3 and 6 (ADR-19). Then scores the final watch
+ * list against expected.json:
  *   recall     planted items that were flagged
  *   precision  flags that match a planted or an acceptable item
  *   decoys     flags raised on statements that look suspicious but are fine (target 0)
- *   stability  share of chunk-2 flag ids still present after chunk 3
- * plus latency per call. Needs ANTHROPIC_API_KEY. The fixtures are synthetic, so printing them is fine.
+ *   stability  share of flag ids after chunk 5 still present after chunk 6
+ * plus latency per call type and an estimated cost per hour of meeting. Needs ANTHROPIC_API_KEY. The fixtures are synthetic, so printing them is fine.
  *
  * Usage: npm run eval -- [--fixture name] [--runs 1] [--speakers] [--model id]
  *                        [--effort low|medium|high] [--thinking adaptive|minimal]
- *                        [--json out.json] [--md out.md]
+ *                        [--watch-model id] [--watch-effort …] [--watch-thinking …]
+ *                        [--json out.json] [--md out.md] [--mock]
  */
 import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { runAnalysis } from '../api/_lib/handlers/analyze.js';
 import {
   settingsFromEnv,
+  watchSettingsFromEnv,
   type Effort,
   type ModelCall,
   type ModelSettings,
@@ -27,7 +30,7 @@ import {
 import { sameQuote } from '../shared/normalize.js';
 import { analyzeRequestSchema } from '../shared/schema.js';
 import type { FlagType, Language } from '../shared/types.js';
-import { buildAnalyzeRequest } from '../src/analysis/buildRequest.js';
+import { buildSummaryRequest, buildWatchRequest } from '../src/analysis/buildRequest.js';
 import { mergeFlags } from '../src/analysis/mergeFlags.js';
 import type { ClientFlag, Line, Session, Speaker } from '../src/store/types.js';
 
@@ -52,9 +55,13 @@ type RunResult = {
   stability: number | null;
   typeAgreement: number;
   latenciesMs: number[];
+  summaryLatenciesMs: number[];
   attempts: number;
   inputTokens: number;
   outputTokens: number;
+  watchCostUsd: number;
+  summaryCostUsd: number;
+  meetingMinutes: number;
   missed: string[];
   flags: FlagScore[];
   tldr: string;
@@ -76,6 +83,9 @@ function args() {
     model: get('model'),
     effort: get('effort') as Effort | undefined,
     thinking: get('thinking') as ThinkingMode | undefined,
+    watchModel: get('watch-model'),
+    watchEffort: get('watch-effort') as Effort | undefined,
+    watchThinking: get('watch-thinking') as ThinkingMode | undefined,
     json: get('json'),
     md: get('md'),
     mock: a.includes('--mock'),
@@ -115,7 +125,21 @@ function loadSession(dir: string, exp: Expected, keepSpeakers: boolean): Session
     analyzedUpToLineIndex: 0,
     analysisCalls: 0,
     lastAnalysisAt: null,
+    summaryUpToLineIndex: 0,
+    lastSummaryAt: null,
   };
+}
+
+/** USD per million tokens (platform.claude.com pricing, 23 Oct 2026; Haiku at its ≤100k tier). */
+const PRICES: Record<string, { in: number; out: number }> = {
+  opus: { in: 4, out: 20 },
+  sonnet: { in: 2, out: 10 },
+  haiku: { in: 0.1, out: 0.5 },
+};
+function costUsd(model: string, inTok: number, outTok: number): number {
+  const key = Object.keys(PRICES).find((k) => model.includes(k)) ?? 'sonnet';
+  const p = PRICES[key] ?? { in: 2, out: 10 };
+  return (inTok * p.in + outTok * p.out) / 1e6;
 }
 
 function classify(quote: string, exp: Expected): string {
@@ -132,17 +156,18 @@ function classify(quote: string, exp: Expected): string {
  */
 function mockCall(exp: Expected): ModelCall {
   return async ({ user }) => {
-    const transcript = user.slice(user.lastIndexOf('TRANSCRIPT'));
-    const prevJson = /PREVIOUS ANALYSIS \(JSON\):\n(.*)\n/.exec(user)?.[1] ?? 'none yet';
-    const prev =
-      prevJson === 'none yet'
-        ? []
-        : (JSON.parse(prevJson) as { flags: { id: string; quote: string }[] }).flags;
-    const flags = exp.planted
-      .filter((p) => transcript.includes(p.quote))
-      .slice(0, 12)
+    const out = (text: unknown) => ({
+      text: JSON.stringify(text),
+      stopReason: 'end_turn',
+      inputTokens: Math.round(user.length / 4),
+      outputTokens: 150,
+    });
+    if (!user.includes('Return only the CHANGES')) return out({ tldr: 'mock', topics: [] });
+    const fresh = user.slice(user.lastIndexOf('NEW TRANSCRIPT'));
+    const current = user.slice(user.indexOf('CURRENT WATCH LIST'), user.indexOf('DISMISSED BY'));
+    const add = exp.planted
+      .filter((p) => fresh.includes(p.quote) && !current.includes(p.quote))
       .map((p) => ({
-        id: prev.find((f) => f.quote === p.quote)?.id ?? '',
         type: p.type ?? 'question',
         title: p.note ?? 'flag',
         quote: p.quote,
@@ -150,12 +175,7 @@ function mockCall(exp: Expected): ModelCall {
         ask: 'Who owns this?',
         who: '',
       }));
-    return {
-      text: JSON.stringify({ tldr: 'mock', topics: [], flags }),
-      stopReason: 'end_turn',
-      inputTokens: Math.round(user.length / 4),
-      outputTokens: 200,
-    };
+    return out({ add, update: [], drop: [] });
   };
 }
 
@@ -163,6 +183,7 @@ async function runFixture(
   name: string,
   run: number,
   settings: ModelSettings,
+  watchSettings: ModelSettings,
   keepSpeakers: boolean,
   mock = false,
 ): Promise<RunResult> {
@@ -170,13 +191,18 @@ async function runFixture(
   const exp = JSON.parse(readFileSync(join(dir, 'expected.json'), 'utf8')) as Expected;
   const full = loadSession(dir, exp, keepSpeakers);
   const n = full.lines.length;
-  const cuts = [Math.ceil(n / 3), Math.ceil((2 * n) / 3), n];
+  const CHUNKS = 6;
+  const cuts = Array.from({ length: CHUNKS }, (_, k) => Math.ceil(((k + 1) * n) / CHUNKS));
   let session: Session = { ...full, lines: [] };
   const latencies: number[] = [];
+  const summaryLatencies: number[] = [];
   let attempts = 0;
   let inputTokens = 0;
   let outputTokens = 0;
-  let idsAfter2: string[] = [];
+  let watchCost = 0;
+  let summaryCost = 0;
+  let idsBeforeLast: string[] = [];
+  const deps = { settings, watchSettings, ...(mock ? { call: mockCall(exp) } : {}) };
   const base: RunResult = {
     fixture: name,
     run,
@@ -187,9 +213,13 @@ async function runFixture(
     stability: null,
     typeAgreement: 0,
     latenciesMs: latencies,
+    summaryLatenciesMs: summaryLatencies,
     attempts: 0,
     inputTokens: 0,
     outputTokens: 0,
+    watchCostUsd: 0,
+    summaryCostUsd: 0,
+    meetingMinutes: (full.lines.at(-1)?.t ?? 60_000) / 60_000,
     missed: [],
     flags: [],
     tldr: '',
@@ -198,24 +228,45 @@ async function runFixture(
 
   for (const [k, cut] of cuts.entries()) {
     session = { ...session, lines: full.lines.slice(0, cut) };
-    const req = analyzeRequestSchema.parse(buildAnalyzeRequest(session));
-    const started = Date.now();
-    const out = await runAnalysis(req, { settings, ...(mock ? { call: mockCall(exp) } : {}) });
-    latencies.push(Date.now() - started);
-    attempts += out.attempts;
-    inputTokens += out.inputTokens;
-    outputTokens += out.outputTokens;
-    if (!out.ok) {
-      return { ...base, attempts, inputTokens, outputTokens, error: `chunk ${k + 1}: ${out.code}` };
+    const calls: ('watch' | 'summary')[] =
+      k === 2 || k === CHUNKS - 1 ? ['watch', 'summary'] : ['watch'];
+    for (const mode of calls) {
+      const body = mode === 'watch' ? buildWatchRequest(session) : buildSummaryRequest(session);
+      const req = analyzeRequestSchema.parse(body);
+      const started = Date.now();
+      const out = await runAnalysis(req, deps);
+      (mode === 'watch' ? latencies : summaryLatencies).push(Date.now() - started);
+      attempts += out.attempts;
+      inputTokens += out.inputTokens;
+      outputTokens += out.outputTokens;
+      const c = costUsd(
+        mode === 'watch' ? watchSettings.model : settings.model,
+        out.inputTokens,
+        out.outputTokens,
+      );
+      if (mode === 'watch') watchCost += c;
+      else summaryCost += c;
+      if (!out.ok) {
+        return {
+          ...base,
+          attempts,
+          inputTokens,
+          outputTokens,
+          error: `chunk ${k + 1} ${mode}: ${out.code}`,
+        };
+      }
+      if ('flags' in out.result) {
+        const merged = mergeFlags(session.flags, out.result.flags, Date.now());
+        session = { ...session, flags: merged.flags, analyzedUpToLineIndex: cut };
+      } else {
+        session = {
+          ...session,
+          summary: { tldr: out.result.tldr, topics: out.result.topics },
+          summaryUpToLineIndex: cut,
+        };
+      }
     }
-    const merged = mergeFlags(session.flags, out.result.flags, Date.now());
-    session = {
-      ...session,
-      summary: { tldr: out.result.tldr, topics: out.result.topics },
-      flags: merged.flags,
-      analyzedUpToLineIndex: cut,
-    };
-    if (k === 1) idsAfter2 = session.flags.map((f) => f.id);
+    if (k === CHUNKS - 2) idsBeforeLast = session.flags.map((f) => f.id);
   }
 
   const flags: ClientFlag[] = session.flags.filter((f) => f.status === 'active');
@@ -236,20 +287,22 @@ async function runFixture(
   const typeOk = typed.filter(
     (s) => exp.planted.find((p) => p.id === s.match.slice(8))?.type === s.type,
   ).length;
-  const idsAfter3 = new Set(flags.map((f) => f.id));
+  const idsAfterLast = new Set(flags.map((f) => f.id));
   return {
     ...base,
     ok: true,
     recall: hit.size / exp.planted.length,
     precision: flags.length ? good / flags.length : 0,
     decoyHits: scored.filter((s) => s.match === 'DECOY').length,
-    stability: idsAfter2.length
-      ? idsAfter2.filter((id) => idsAfter3.has(id)).length / idsAfter2.length
+    stability: idsBeforeLast.length
+      ? idsBeforeLast.filter((id) => idsAfterLast.has(id)).length / idsBeforeLast.length
       : null,
     typeAgreement: typed.length ? typeOk / typed.length : 0,
     attempts,
     inputTokens,
     outputTokens,
+    watchCostUsd: watchCost,
+    summaryCostUsd: summaryCost,
     missed: exp.planted.filter((p) => !hit.has(p.id ?? '')).map((p) => `${p.id} (${p.type})`),
     flags: scored,
     tldr: session.summary?.tldr ?? '',
@@ -279,6 +332,13 @@ async function main() {
     ...(a.effort ? { effort: a.effort } : {}),
     ...(a.thinking ? { thinking: a.thinking } : {}),
   };
+  const wenv = watchSettingsFromEnv();
+  const watchSettings: ModelSettings = {
+    ...wenv,
+    model: a.watchModel ?? a.model ?? wenv.model,
+    effort: a.watchEffort ?? a.effort ?? wenv.effort,
+    thinking: a.watchThinking ?? a.thinking ?? wenv.thinking,
+  };
   const fixtures = readdirSync(ROOT, { withFileTypes: true })
     .filter((d) => d.isDirectory() && (!a.fixture || d.name === a.fixture))
     .map((d) => d.name)
@@ -288,7 +348,7 @@ async function main() {
   for (const f of fixtures) {
     for (let r = 1; r <= a.runs; r++) {
       process.stdout.write(`${f} run ${r}… `);
-      const res = await runFixture(f, r, settings, a.speakers, a.mock);
+      const res = await runFixture(f, r, settings, watchSettings, a.speakers, a.mock);
       results.push(res);
       console.info(
         res.ok
@@ -304,10 +364,15 @@ async function main() {
   const ok = results.filter((r) => r.ok);
   const mean = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0);
   const lat = results.flatMap((r) => r.latenciesMs);
+  const slat = results.flatMap((r) => r.summaryLatenciesMs);
+  const minutes = ok.reduce((s, r) => s + r.meetingMinutes, 0) || 1;
+  // A live hour has ~10 times the calls of one fixture-minute set; scale cost by meeting length.
+  const perHour = (usd: number) => (usd / minutes) * 60;
   const stab = ok.map((r) => r.stability).filter((x): x is number => x !== null);
   const summary = {
     date: new Date().toISOString(),
     settings,
+    watchSettings,
     speakers: a.speakers,
     runs: results.length,
     failed: results.length - ok.length,
@@ -318,14 +383,19 @@ async function main() {
     typeAgreement: mean(ok.map((r) => r.typeAgreement)),
     latencyP50Ms: quantile(lat, 0.5),
     latencyP95Ms: quantile(lat, 0.95),
+    summaryLatencyP50Ms: quantile(slat, 0.5),
+    summaryLatencyP95Ms: quantile(slat, 0.95),
+    watchCostPerHourUsd: perHour(ok.reduce((s, r) => s + r.watchCostUsd, 0)),
+    summaryCostPerHourUsd: perHour(ok.reduce((s, r) => s + r.summaryCostUsd, 0)),
     inputTokens: results.reduce((s, r) => s + r.inputTokens, 0),
     outputTokens: results.reduce((s, r) => s + r.outputTokens, 0),
-    retries: results.reduce((s, r) => s + Math.max(0, r.attempts - 3), 0),
+    retries: results.reduce((s, r) => s + Math.max(0, r.attempts - 8), 0),
   };
   const pass =
     summary.recall >= 0.6 &&
     summary.precision >= 0.7 &&
     summary.decoyHits <= 1 &&
+    summary.latencyP95Ms < 15_000 &&
     summary.failed === 0;
 
   const rows = results
@@ -335,13 +405,13 @@ async function main() {
         : `| ${r.fixture} | ${r.run} | failed: ${r.error} | | | | | |`,
     )
     .join('\n');
-  const md = `### ${summary.date.slice(0, 10)} — ${a.mock ? 'MOCK MODEL (plumbing check)' : settings.model}, effort ${settings.effort}, thinking ${settings.thinking}${a.speakers ? ', with speaker names' : ', no speaker names'}
+  const md = `### ${summary.date.slice(0, 10)} — ${a.mock ? 'MOCK MODEL (plumbing check)' : `watch ${watchSettings.model} (${watchSettings.effort}, ${watchSettings.thinking}), summary ${settings.model} (${settings.effort}, ${settings.thinking})`}${a.speakers ? ', with speaker names' : ', no speaker names'}
 
-| Fixture | Run | Recall | Precision | Decoys | Stability | Flags | Slowest call |
+| Fixture | Run | Recall | Precision | Decoys | Stability | Flags | Slowest watch call |
 |---|---|---|---|---|---|---|---|
 ${rows}
 
-**Overall:** recall ${pct(summary.recall)} (target ≥ 60%), precision ${pct(summary.precision)} (≥ 70%), decoy hits ${summary.decoyHits} (≤ 1), stability ${pct(summary.stability)}, type agreement ${pct(summary.typeAgreement)}. Latency p50 ${(summary.latencyP50Ms / 1000).toFixed(1)} s, p95 ${(summary.latencyP95Ms / 1000).toFixed(1)} s (target < 15 s). Tokens in ${summary.inputTokens}, out ${summary.outputTokens}. Retries ${summary.retries}. **${pass ? 'PASS' : 'BELOW TARGET'}**.
+**Overall:** recall ${pct(summary.recall)} (target ≥ 60%), precision ${pct(summary.precision)} (≥ 70%), decoy hits ${summary.decoyHits} (≤ 1), stability ${pct(summary.stability)}, type agreement ${pct(summary.typeAgreement)}. Watch call latency p50 ${(summary.latencyP50Ms / 1000).toFixed(1)} s, p95 ${(summary.latencyP95Ms / 1000).toFixed(1)} s (target < 15 s); summary call p50 ${(summary.summaryLatencyP50Ms / 1000).toFixed(1)} s. Estimated cost per hour of meeting: watch $${summary.watchCostPerHourUsd.toFixed(2)} + summary $${summary.summaryCostPerHourUsd.toFixed(2)}. Tokens in ${summary.inputTokens}, out ${summary.outputTokens}. Retries ${summary.retries}. **${pass ? 'PASS' : 'BELOW TARGET'}**.
 `;
   console.info('\n' + md);
   mkdirSync('eval-results', { recursive: true });

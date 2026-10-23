@@ -34,7 +34,7 @@ export function AnalysisControls() {
 
 export function AnalysisStatus() {
   const updatedAt = useSession((s) => s.analysis.updatedAt);
-  const running = useSession((s) => s.analysis.running);
+  const running = useSession((s) => s.analysis.running || s.analysis.summaryRunning);
   if (running) return <span className="status wide-only">· analyzing…</span>;
   if (!updatedAt) return null;
   return <span className="status wide-only">· updated {clockTime(updatedAt)}</span>;

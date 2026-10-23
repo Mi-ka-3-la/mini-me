@@ -3,7 +3,7 @@ import { BUDGET, makeAnalyzeHandler } from '../../api/_lib/handlers/analyze';
 import type { ApiRequest } from '../../api/_lib/http';
 import { UpstreamError, type ModelCall, type ModelResult } from '../../api/_lib/model';
 import { resetRateLimit } from '../../api/_lib/rateLimit';
-import { analysisOutputSchema } from '../../shared/schema';
+import { summaryOutputSchema, watchResponseSchema } from '../../shared/schema';
 import { EXAMPLE_OUTPUT, EXAMPLE_TRANSCRIPT } from '../fixtures/example';
 
 const settings = {
@@ -19,10 +19,18 @@ const ok = (text: string, stopReason = 'end_turn'): ModelResult => ({
   outputTokens: 300,
 });
 const body = {
+  mode: 'watch',
   language: 'en-US',
   context: 'Need a firm go-live owner',
-  transcript: EXAMPLE_TRANSCRIPT,
+  transcript: '',
+  newTranscript: EXAMPLE_TRANSCRIPT,
 };
+const WATCH_OUT = {
+  add: EXAMPLE_OUTPUT.flags.map(({ id: _id, ...f }) => f),
+  update: [],
+  drop: [],
+};
+const SUMMARY_OUT = { tldr: EXAMPLE_OUTPUT.tldr, topics: EXAMPLE_OUTPUT.topics };
 const request = (over: Partial<ApiRequest> = {}): ApiRequest => ({
   method: 'POST',
   headers: { 'x-app-passcode': 'pc' },
@@ -44,23 +52,36 @@ function handler(call: ModelCall, now?: () => number) {
 }
 
 describe('/api/analyze', () => {
-  it('returns a valid analysis state for the example transcript', async () => {
-    const call = vi.fn<ModelCall>(async () => ok(JSON.stringify(EXAMPLE_OUTPUT)));
+  it('watch mode returns the updated watch list for the example transcript', async () => {
+    const call = vi.fn<ModelCall>(async () => ok(JSON.stringify(WATCH_OUT)));
     const res = await handler(call)(request());
     expect(res.status).toBe(200);
-    const parsed = analysisOutputSchema.parse(res.body);
+    const parsed = watchResponseSchema.parse(res.body);
     expect(parsed.flags).toHaveLength(2);
     expect(parsed.flags.every((f) => /^f-/.test(f.id))).toBe(true);
     const args = call.mock.calls[0]![0];
     expect(args.user).toContain('Need a firm go-live owner');
+    expect(args.user).toContain('Return only the CHANGES');
+    expect(args.schema).toHaveProperty('required', ['add', 'update', 'drop']);
     expect(args.timeoutMs).toBe(BUDGET.firstMs);
+  });
+
+  it('summary mode returns the summary only', async () => {
+    const call = vi.fn<ModelCall>(async () => ok(JSON.stringify(SUMMARY_OUT)));
+    const res = await handler(call)(request({ body: { ...body, mode: 'summary' } }));
+    expect(res.status).toBe(200);
+    expect(summaryOutputSchema.parse(res.body).topics[0]?.topic).toBe('Go-live date');
+    expect(res.body).not.toHaveProperty('flags');
+    expect(call.mock.calls[0]![0].schema).toHaveProperty('required', ['tldr', 'topics']);
   });
 
   it('refuses without the passcode, wrong methods and invalid bodies', async () => {
     const call = vi.fn<ModelCall>();
     expect((await handler(call)(request({ headers: {} }))).status).toBe(401);
     expect((await handler(call)(request({ method: 'GET' }))).status).toBe(405);
-    const bad = await handler(call)(request({ body: { language: 'fr-FR', transcript: 'x' } }));
+    const bad = await handler(call)(
+      request({ body: { mode: 'watch', language: 'fr-FR', transcript: 'x' } }),
+    );
     expect(bad.status).toBe(400);
     expect(bad.body).toEqual({ error: 'bad_request', message: expect.any(String) });
     expect((await handler(call)(request({ bodyBytes: 300 * 1024 }))).status).toBe(413);
@@ -71,7 +92,7 @@ describe('/api/analyze', () => {
     const call = vi
       .fn<ModelCall>()
       .mockResolvedValueOnce(ok('{"tldr": 3}'))
-      .mockResolvedValueOnce(ok(JSON.stringify(EXAMPLE_OUTPUT)));
+      .mockResolvedValueOnce(ok(JSON.stringify(WATCH_OUT)));
     const res = await handler(call)(request());
     expect(res.status).toBe(200);
     expect(call).toHaveBeenCalledTimes(2);
@@ -119,7 +140,7 @@ describe('/api/analyze', () => {
 
   it('never logs transcript, context or analysis text', async () => {
     const spy = vi.spyOn(console, 'info').mockImplementation(() => {});
-    await handler(async () => ok(JSON.stringify(EXAMPLE_OUTPUT)))(request());
+    await handler(async () => ok(JSON.stringify(WATCH_OUT)))(request());
     await handler(async () => ok('garbage'))(request());
     const logged = spy.mock.calls.map((c) => String(c[0])).join('\n');
     for (const word of ['invoicing', 'formality', 'go-live', 'Germany', 'Client', 'owner', 'UAT']) {
@@ -130,7 +151,7 @@ describe('/api/analyze', () => {
   });
 
   it('rate-limits a burst from one IP', async () => {
-    const h = handler(async () => ok(JSON.stringify(EXAMPLE_OUTPUT)));
+    const h = handler(async () => ok(JSON.stringify(WATCH_OUT)));
     let last = 200;
     for (let i = 0; i < 31; i++) last = (await h(request({ headers: {} }))).status;
     expect(last).toBe(429);

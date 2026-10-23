@@ -3,7 +3,6 @@ import Anthropic, {
   APIError,
   APIUserAbortError,
 } from '@anthropic-ai/sdk';
-import { OUTPUT_JSON_SCHEMA } from '../../shared/schema.js';
 
 export type Effort = 'low' | 'medium' | 'high';
 export type ThinkingMode = 'adaptive' | 'minimal';
@@ -19,6 +18,8 @@ export type ModelCallArgs = ModelSettings & {
   system: string;
   user: string;
   timeoutMs: number;
+  /** JSON Schema for output_config.format */
+  schema: Record<string, unknown>;
 };
 
 export type ModelResult = {
@@ -43,13 +44,33 @@ export type ModelCall = (args: ModelCallArgs) => Promise<ModelResult>;
 
 export const DEFAULT_MODEL = 'claude-sonnet-5-5';
 
+function effortOf(v: string | undefined, fallback: Effort): Effort {
+  return v === 'low' || v === 'medium' || v === 'high' ? v : fallback;
+}
+
+/** Settings for the summary call (ANALYSIS_*). */
 export function settingsFromEnv(env: NodeJS.ProcessEnv = process.env): ModelSettings {
-  const effort = env.ANALYSIS_EFFORT;
   return {
     model: env.ANALYSIS_MODEL?.trim() || DEFAULT_MODEL,
-    effort: effort === 'low' || effort === 'high' ? effort : 'medium',
+    effort: effortOf(env.ANALYSIS_EFFORT, 'medium'),
     thinking: env.ANALYSIS_THINKING === 'minimal' ? 'minimal' : 'adaptive',
     maxTokens: 8000,
+  };
+}
+
+/** Settings for the watch call (WATCH_*, falling back to ANALYSIS_*), ADR-19. */
+export function watchSettingsFromEnv(env: NodeJS.ProcessEnv = process.env): ModelSettings {
+  const base = settingsFromEnv(env);
+  return {
+    model: env.WATCH_MODEL?.trim() || base.model,
+    effort: effortOf(env.WATCH_EFFORT, base.effort),
+    thinking:
+      env.WATCH_THINKING === 'minimal'
+        ? 'minimal'
+        : env.WATCH_THINKING === 'adaptive'
+          ? 'adaptive'
+          : base.thinking,
+    maxTokens: 4000,
   };
 }
 
@@ -85,7 +106,7 @@ export const anthropicCall: ModelCall = async (args) => {
           effort: args.effort,
           format: {
             type: 'json_schema',
-            schema: OUTPUT_JSON_SCHEMA as unknown as Record<string, unknown>,
+            schema: args.schema,
           },
         },
         ...(thinking ? { thinking } : {}),

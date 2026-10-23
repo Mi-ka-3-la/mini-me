@@ -14,9 +14,9 @@ test('analysis runs automatically after enough words and the counter goes up', a
   await unlock(page);
   await page.getByLabel('Context (optional)').fill('Firm go-live owner');
   await paste(page, LONG);
-  await expect(page.getByTestId('call-counter')).toHaveText('1/150 analyses');
+  await expect(page.getByTestId('call-counter')).toHaveText('2/150 analyses');
   await expect(page.getByText(/updated \d\d:\d\d/)).toBeVisible();
-  expect(calls).toBe(1);
+  expect(calls).toBe(2); // one watch call and the first summary
   expect(sentContext).toBe('Firm go-live owner');
 });
 
@@ -54,15 +54,15 @@ test('summary shows "So far" and tagged topic items, and stays while the next up
 }) => {
   await installFakeSpeech(page);
   let release: () => void = () => {};
-  let n = 0;
+  let summaries = 0;
   await page.route('**/api/analyze', async (route) => {
-    n++;
-    if (n === 2) await new Promise<void>((r) => (release = r));
+    const mode = (route.request().postDataJSON() as { mode: string }).mode;
+    if (mode === 'summary' && ++summaries === 2) await new Promise<void>((r) => (release = r));
     await route.fulfill({ json: OUTPUT });
   });
   await unlock(page);
   await paste(page, LONG);
-  await expect(page.getByTestId('call-counter')).toHaveText('1/150 analyses');
+  await expect(page.getByTestId('call-counter')).toHaveText('2/150 analyses');
   const summary = await openColumn(page, 'Summary', 'Running summary');
   await expect(summary.getByText('So far')).toBeVisible();
   await expect(summary.getByRole('heading', { name: 'Go-live date' })).toBeVisible();
