@@ -12,7 +12,12 @@ import { apiFetch, type ApiError } from '../lib/api';
 export const CLIENT_TIMEOUT_MS = 95_000;
 
 export type AnalyzeData =
-  | { flags: ModelFlag[]; questions: { id: string; quote: string; question: string }[] }
+  | {
+      flags: ModelFlag[];
+      questions: { id: string; quote: string; question: string; topic: string }[];
+      segments: { t: number; topic: string }[];
+      answered: { id: string; quote: string }[];
+    }
   | { tldr: string; topics: Topic[] }
   | { answer: Answer };
 export type AnalyzeResult = { ok: true; data: AnalyzeData } | { ok: false; error: ApiError };

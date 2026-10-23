@@ -14,6 +14,16 @@
   --question: #0e6ba8;
   --question-soft: #e3f1fa;
   --ok: #15803d;
+  --ok-soft: #e7f6ec;
+  /* Topic threads (ADR-21): six hues apart from the flag-type colours. */
+  --t0: #0f766e;
+  --t1: #7c3aed;
+  --t2: #4d7c0f;
+  --t3: #be185d;
+  --t4: #92400e;
+  --t5: #4338ca;
+  --mark: #475569;
+  --mark-soft: #eef1f6;
   --display: 'Bricolage Grotesque', system-ui, sans-serif;
   --body: 'IBM Plex Sans', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -36,6 +46,15 @@
     --question: #62b8ef;
     --question-soft: #112b3b;
     --ok: #4ade80;
+    --ok-soft: #10301c;
+    --t0: #2dd4bf;
+    --t1: #a78bfa;
+    --t2: #a3e635;
+    --t3: #f472b6;
+    --t4: #fbbf24;
+    --t5: #a5b4fc;
+    --mark: #cbd5e1;
+    --mark-soft: #232a36;
     color-scheme: dark;
   }
 }
@@ -54,5 +73,14 @@
   --question: #62b8ef;
   --question-soft: #112b3b;
   --ok: #4ade80;
+  --ok-soft: #10301c;
+  --t0: #2dd4bf;
+  --t1: #a78bfa;
+  --t2: #a3e635;
+  --t3: #f472b6;
+  --t4: #fbbf24;
+  --t5: #a5b4fc;
+  --mark: #cbd5e1;
+  --mark-soft: #232a36;
   color-scheme: dark;
 }

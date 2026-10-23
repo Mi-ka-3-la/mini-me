@@ -1,6 +1,9 @@
 import { randomBytes } from 'node:crypto';
 import { sameQuote, quoteFound, tokens } from '../../shared/normalize.js';
 import { MAX_FLAGS, type AnalyzeRequest } from '../../shared/schema.js';
+
+/** Important markers have their own cap, so they never push problems off the list (ADR-21). */
+export const MAX_IMPORTANT = 8;
 import type { ModelFlag, Topic } from '../../shared/types.js';
 
 const ID_ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789';
@@ -30,10 +33,12 @@ export type WatchModelOutput = {
   add: Omit<ModelFlag, 'id'>[];
   update: ModelFlag[];
   drop: string[];
-  questions?: { quote: string; question: string }[];
+  questions?: { quote: string; question: string; topic?: string }[];
+  segments?: { at: string; topic: string }[];
+  answered?: { id: string; quote: string }[];
 };
 
-export type DetectedQuestion = { id: string; quote: string; question: string };
+export type DetectedQuestion = { id: string; quote: string; question: string; topic: string };
 
 export type Answer = {
   question: string;
@@ -114,6 +119,7 @@ export function applyWatch(
       why: raw.why,
       ask: raw.ask,
       who: raw.who,
+      topic: clean(raw.topic ?? ''),
     });
     if (!quoteFound(f.quote, groundTokens)) {
       stats.droppedUngrounded++;
@@ -136,8 +142,20 @@ export function applyWatch(
   }
 
   // Cap: remove the oldest unpinned flags first (the list runs oldest → newest).
-  while (list.length > MAX_FLAGS) {
-    const i = list.findIndex((f) => !pinned.has(f.id));
+  const capKind = (isImportant: boolean, max: number) => {
+    const ofKind = () => list.filter((f) => (f.type === 'important') === isImportant);
+    while (ofKind().length > max) {
+      const i = list.findIndex(
+        (f) => (f.type === 'important') === isImportant && !pinned.has(f.id),
+      );
+      if (i < 0) break;
+      list.splice(i, 1);
+      stats.droppedOverCap++;
+    }
+  };
+  capKind(true, MAX_IMPORTANT);
+  while (list.filter((f) => f.type !== 'important').length > MAX_FLAGS) {
+    const i = list.findIndex((f) => f.type !== 'important' && !pinned.has(f.id));
     if (i < 0) break;
     list.splice(i, 1);
     stats.droppedOverCap++;
@@ -160,9 +178,42 @@ export function applyQuestions(
     if (!quote || !question || !quoteFound(quote, groundTokens)) continue;
     if (req.knownQuestions.some((k) => sameQuote(k, quote))) continue;
     if (result.some((r) => sameQuote(r.quote, quote))) continue;
-    result.push({ id: makeId(), quote, question });
+    result.push({ id: makeId(), quote, question, topic: clean(q.topic ?? '') });
   }
   return result.slice(0, 5);
+}
+
+/** "mm:ss" → ms, or null when the model wrote something else. */
+export function parseClock(at: string): number | null {
+  const m = /^(\d{1,3}):([0-5]\d)$/.exec(at.trim().replace(/^\[|\]$/g, ''));
+  return m ? (Number(m[1]) * 60 + Number(m[2])) * 1000 : null;
+}
+
+/**
+ * Topic segments and answered questions from a watch call (ADR-21). Segments must point at a
+ * time that appears in the transcript; answers must be grounded and belong to an open question.
+ */
+export function applyThreads(
+  out: WatchModelOutput,
+  req: AnalyzeRequest,
+): { segments: { t: number; topic: string }[]; answered: { id: string; quote: string }[] } {
+  const text = `${req.transcript}\n${req.newTranscript}`;
+  const times = new Set(
+    [...text.matchAll(/^\[(\d{1,3}:[0-5]\d)\]/gm)].map((m) => parseClock(m[1] ?? '')),
+  );
+  const segments = (out.segments ?? [])
+    .map((sg) => ({ t: parseClock(sg.at), topic: clean(sg.topic) }))
+    .filter(
+      (sg): sg is { t: number; topic: string } => sg.t !== null && times.has(sg.t) && !!sg.topic,
+    )
+    .sort((a, b) => a.t - b.t)
+    .slice(0, 10);
+  const open = new Set(req.openQuestions.map((q) => q.id));
+  const groundTokens = tokens(text);
+  const answered = (out.answered ?? [])
+    .map((a) => ({ id: a.id.trim(), quote: clean(a.quote).replace(/^["“„']+|["”']+$/g, '') }))
+    .filter((a) => open.has(a.id) && quoteFound(a.quote, groundTokens));
+  return { segments, answered };
 }
 
 export function cleanAnswer(a: Answer): Answer {

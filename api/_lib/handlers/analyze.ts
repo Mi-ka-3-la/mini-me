@@ -24,6 +24,7 @@ import {
 } from '../model.js';
 import {
   applyQuestions,
+  applyThreads,
   applyWatch,
   cleanAnswer,
   cleanSummary,
@@ -59,7 +60,12 @@ type Attempt =
   | { ok: false; problem: string; inputTokens: number; outputTokens: number };
 
 export type AnalyzeResult =
-  | { flags: ModelFlag[]; questions: DetectedQuestion[] }
+  | {
+      flags: ModelFlag[];
+      questions: DetectedQuestion[];
+      segments: { t: number; topic: string }[];
+      answered: { id: string; quote: string }[];
+    }
   | { tldr: string; topics: Topic[] }
   | { answer: Answer };
 
@@ -219,9 +225,10 @@ export async function runAnalysis(
           const w = a.output as WatchModelOutput;
           const { flags, stats } = applyWatch(w, req);
           const questions = applyQuestions(w, req);
+          const { segments, answered } = applyThreads(w, req);
           return {
             ok: true,
-            result: { flags, questions },
+            result: { flags, questions, segments, answered },
             stats,
             attempts,
             inputTokens,

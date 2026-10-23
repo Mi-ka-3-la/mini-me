@@ -10,7 +10,7 @@ const str = (max: number) => z.string().max(max);
 
 export const flagTypeSchema = z.preprocess(
   (v) => (typeof v === 'string' ? v.toLowerCase().trim() : v),
-  z.enum(['trap', 'logic', 'question']),
+  z.enum(['trap', 'logic', 'question', 'important']),
 );
 
 export const topicSchema = z.object({
@@ -29,6 +29,8 @@ export const modelFlagSchema = z.object({
   why: z.string(),
   ask: z.string(),
   who: z.string(),
+  /** Topic thread the flag belongs to (ADR-21); empty when unknown. */
+  topic: z.string().default(''),
 });
 
 /** Full analysis state kept by the browser. */
@@ -40,7 +42,14 @@ export const analysisOutputSchema = z.object({
 
 const newFlagSchema = modelFlagSchema.omit({ id: true });
 
-export const detectedQuestionSchema = z.object({ quote: z.string(), question: z.string() });
+export const detectedQuestionSchema = z.object({
+  quote: z.string(),
+  question: z.string(),
+  topic: z.string().default(''),
+});
+
+/** "From this moment on, the talk is about this topic" (ADR-21). at = "mm:ss". */
+export const segmentSchema = z.object({ at: z.string(), topic: z.string() });
 
 /** What the model returns for a watch call (ADR-19): only the changes to the watch list. */
 export const watchModelOutputSchema = z.object({
@@ -48,6 +57,8 @@ export const watchModelOutputSchema = z.object({
   update: z.array(modelFlagSchema),
   drop: z.array(z.string()),
   questions: z.array(detectedQuestionSchema).default([]),
+  segments: z.array(segmentSchema).default([]),
+  answered: z.array(z.object({ id: z.string(), quote: z.string() })).default([]),
 });
 
 export const answerStepSchema = z.object({ label: z.string(), detail: z.string() });
@@ -70,8 +81,18 @@ export const summaryOutputSchema = z.object({
 export const watchResponseSchema = z.object({
   flags: z.array(modelFlagSchema),
   questions: z
-    .array(z.object({ id: z.string(), quote: z.string(), question: z.string() }))
+    .array(
+      z.object({
+        id: z.string(),
+        quote: z.string(),
+        question: z.string(),
+        topic: z.string().default(''),
+      }),
+    )
     .default([]),
+  /** t = ms since session start */
+  segments: z.array(z.object({ t: z.number(), topic: z.string() })).default([]),
+  answered: z.array(z.object({ id: z.string(), quote: z.string() })).default([]),
 });
 
 /** POST /api/analyze body (docs/02 §6, ADR-19). */
@@ -101,6 +122,13 @@ export const analyzeRequestSchema = z.object({
   transcriptTrimmed: z.boolean().default(false),
   /** Questions already detected (quotes), so the watch call does not report them again. */
   knownQuestions: z.array(str(600)).max(200).default([]),
+  /** Questions still without an answer, so the watch call can mark them answered (ADR-21). */
+  openQuestions: z
+    .array(z.object({ id: str(40), question: str(600) }))
+    .max(50)
+    .default([]),
+  /** Topic names already in use, so every call reuses the same names (ADR-21). */
+  knownTopics: z.array(str(120)).max(40).default([]),
   /** Answer mode: the question to answer, and the listener's background (ADR-20). */
   question: z
     .object({ quote: str(600), question: str(600) })
@@ -113,7 +141,8 @@ export type AnalyzeRequest = z.infer<typeof analyzeRequestSchema>;
 export type AnalyzeRequestInput = z.input<typeof analyzeRequestSchema>;
 
 const FLAG_PROPS = {
-  type: { type: 'string', enum: ['trap', 'logic', 'question'] },
+  type: { type: 'string', enum: ['trap', 'logic', 'question', 'important'] },
+  topic: { type: 'string' },
   title: { type: 'string' },
   quote: { type: 'string' },
   why: { type: 'string' },
@@ -128,15 +157,37 @@ const FLAG_PROPS = {
 export const WATCH_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['add', 'update', 'drop', 'questions'],
+  required: ['add', 'update', 'drop', 'questions', 'segments', 'answered'],
   properties: {
     questions: {
       type: 'array',
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['quote', 'question'],
-        properties: { quote: { type: 'string' }, question: { type: 'string' } },
+        required: ['quote', 'question', 'topic'],
+        properties: {
+          quote: { type: 'string' },
+          question: { type: 'string' },
+          topic: { type: 'string' },
+        },
+      },
+    },
+    segments: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['at', 'topic'],
+        properties: { at: { type: 'string' }, topic: { type: 'string' } },
+      },
+    },
+    answered: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'quote'],
+        properties: { id: { type: 'string' }, quote: { type: 'string' } },
       },
     },
     add: {
@@ -144,7 +195,7 @@ export const WATCH_JSON_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['type', 'title', 'quote', 'why', 'ask', 'who'],
+        required: ['type', 'title', 'quote', 'why', 'ask', 'who', 'topic'],
         properties: FLAG_PROPS,
       },
     },
@@ -153,7 +204,7 @@ export const WATCH_JSON_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['id', 'type', 'title', 'quote', 'why', 'ask', 'who'],
+        required: ['id', 'type', 'title', 'quote', 'why', 'ask', 'who', 'topic'],
         properties: { id: { type: 'string' }, ...FLAG_PROPS },
       },
     },

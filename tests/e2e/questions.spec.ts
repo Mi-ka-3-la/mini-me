@@ -45,7 +45,7 @@ test('questions are listed and answered only on tap, as a step plan with the tra
   await page.getByLabel('My background (for answers)').fill('PSPO II, owns a 9-developer backlog');
   await paste(page, LONG);
   const col = await openColumn(page, 'Watch list', 'Watch list');
-  await col.getByRole('button', { name: /Questions asked \(1\)/ }).click();
+  await col.getByRole('button', { name: /Questions asked \(1 open\)/ }).click();
   const q = col.getByRole('article', { name: /Question: How would you reduce technical debt/ });
   await expect(q).toBeVisible();
   expect(answerCalls).toBe(0); // nothing is answered without a tap

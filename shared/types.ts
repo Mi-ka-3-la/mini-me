@@ -5,7 +5,7 @@ export const LANGUAGES: { id: Language; label: string; name: string }[] = [
   { id: 'ro-RO', label: 'Romanian', name: 'Romanian' },
 ];
 
-export type FlagType = 'trap' | 'logic' | 'question';
+export type FlagType = 'trap' | 'logic' | 'question' | 'important';
 
 export type Topic = {
   topic: string;
@@ -24,6 +24,8 @@ export type ModelFlag = {
   why: string;
   ask: string;
   who: string;
+  /** Topic thread (ADR-21) */
+  topic?: string;
 };
 
 export type AnalysisOutput = { tldr: string; topics: Topic[]; flags: ModelFlag[] };

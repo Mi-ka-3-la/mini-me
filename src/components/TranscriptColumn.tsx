@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { parseManual } from '../lib/parseManual';
 import { mmss } from '../lib/time';
+import { topicAt, topicSlot } from '../lib/topics';
 import { useSession } from '../store/session';
 import type { Gap, Line } from '../store/types';
 import { Column } from './Column';
@@ -43,6 +44,8 @@ export function TranscriptColumn({ hidden }: { hidden: boolean }) {
   const lines = useSession((s) => s.session.lines);
   const gaps = useSession((s) => s.session.gaps);
   const speakers = useSession((s) => s.session.speakers);
+  const topics = useSession((s) => s.session.topics);
+  const segments = useSession((s) => s.session.segments);
   const interim = useSession((s) => s.interim);
   const addLine = useSession((s) => s.addLine);
   const markStart = useSession((s) => s.markStart);
@@ -83,6 +86,7 @@ export function TranscriptColumn({ hidden }: { hidden: boolean }) {
   }
 
   const items = interleave(lines, gaps);
+  const slotFor = (t: number) => topicSlot(topics, topicAt(segments, t));
   return (
     <Column
       id="transcript"
@@ -101,7 +105,10 @@ export function TranscriptColumn({ hidden }: { hidden: boolean }) {
               </div>
             ) : (
               <Fragment key={it.line.id}>
-                <div className={`line${it.line.origin === 'manual' ? ' manual' : ''}`}>
+                <div
+                  className={`line${it.line.origin === 'manual' ? ' manual' : ''}`}
+                  data-topic={slotFor(it.line.t) ?? undefined}
+                >
                   <span className="ts">{mmss(it.line.t)}</span>
                   <span className="txt">
                     {it.line.speakerId && speakers[it.line.speakerId] && (

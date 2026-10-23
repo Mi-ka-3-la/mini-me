@@ -1,0 +1,30 @@
+[00:03] Andreea (Hiring manager): Bună, mulțumim că ai venit. Eu sunt Andreea, conduc echipa de produs, iar Dan e tech lead-ul nostru.
+[00:12] Dan (Tech lead): Salut. Ca să știi contextul, avem o platformă de plăți folosită de vreo două sute de magazine online.
+[00:22] Andreea (Hiring manager): Rolul e de Product Owner pentru echipa de checkout. Hai să începem simplu: spune-ne pe scurt ce ai făcut în ultimii doi ani.
+[00:34] Candidat: În ultimii doi ani am fost Product Owner pe o platformă B2B de facturare, cu o echipă de opt developeri.
+[00:48] Andreea (Hiring manager): Perfect. Noi lansăm noul checkout pe 1 martie, data e deja comunicată clienților, deci nu se mai mișcă.
+[00:58] Dan (Tech lead): Doar că integrarea cu noul procesator de plăți nu e terminată. Ne lipsesc certificările de la ei.
+[01:08] Andreea (Hiring manager): Certificarea e o formalitate, o rezolvăm noi.
+[01:14] Dan (Tech lead): Am o întrebare tehnică. Avem foarte multă datorie tehnică în checkout, cod vechi de cinci ani. Cum ai pune tu ordine în toată datoria asta tehnică fără să oprești livrările?
+[01:30] Candidat: Aș începe prin a vedea unde doare cel mai tare, adică unde apar incidentele.
+[01:38] Dan (Tech lead): Bun. Și cum convingi business-ul să-ți dea timp pentru asta?
+[01:45] Candidat: Aș lega fiecare bucată de datorie de un cost vizibil, de exemplu timp pierdut sau incidente la clienți.
+[01:56] Andreea (Hiring manager): La noi echipa a livrat tot ce a promis anul trecut, deci procesul nostru funcționează foarte bine.
+[02:06] Dan (Tech lead): A livrat, dar cu trei incidente majore în producție în ultimul trimestru.
+[02:14] Andreea (Hiring manager): Asta e altă discuție. Spune-mi, care e cel mai mare defect al tău?
+[02:22] Candidat: Uneori intru prea mult în detalii tehnice.
+[02:28] Andreea (Hiring manager): Și de ce vrei să pleci de la actualul angajator? Ai probleme cu managerul?
+[02:37] Candidat: Caut un produs unde să am mai mult impact direct asupra clienților.
+[02:44] Andreea (Hiring manager): Înțeleg. Să fiu sinceră, uneori se lucrează și în weekend înainte de lansări, dar e ceva normal în industrie, toată lumea face asta.
+[02:56] Dan (Tech lead): În ultimele două luni am lucrat patru weekenduri.
+[03:03] Andreea (Hiring manager): Dacă ar trebui să alegi între a livra la timp și a livra calitate, ce ai alege?
+[03:12] Candidat: Aș încerca să negociez scope-ul ca să le păstrez pe amândouă.
+[03:19] Andreea (Hiring manager): Ok. Bugetul pentru rol e fix, nu putem trece de el, dar avem beneficii foarte bune, toți colegii sunt mulțumiți.
+[03:30] Dan (Tech lead): Încă ceva: cum ai prioritiza dacă vânzările îți cer o funcționalitate urgentă pentru un client mare chiar în săptămâna lansării?
+[03:42] Candidat: Aș verifica întâi ce pierdem dacă nu o facem acum și ce riscăm dacă o băgăm în lansare.
+[03:52] Andreea (Hiring manager): Mai ai tu întrebări pentru noi?
+[03:57] Candidat: Da. Cine decide prioritățile între produs și vânzări când apare un conflict?
+[04:05] Andreea (Hiring manager): Decidem împreună, de obicei ne înțelegem.
+[04:11] Candidat: Și cine semnează că certificarea procesatorului e gata înainte de 1 martie?
+[04:18] Dan (Tech lead): Momentan nimeni nu și-a asumat asta.
+[04:23] Andreea (Hiring manager): Avem nevoie de un răspuns de la tine până mâine, avem și alți candidați.

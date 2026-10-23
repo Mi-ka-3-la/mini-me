@@ -1,5 +1,6 @@
 import { listening } from '../audio/controller';
 import { useSession } from '../store/session';
+import { simulator, useSimulation } from '../demo/simulator';
 
 export const LISTEN_LABEL = {
   idle: 'Ready',
@@ -40,8 +41,12 @@ export function ListenStatusText({ secondary = false }: { secondary?: boolean })
 export function StartStopButton() {
   const status = useSession((s) => s.listen);
   const active = status === 'listening' || status === 'reconnecting' || status === 'starting';
+  const simulating = useSimulation((s) => s.running !== null);
   return active ? (
-    <button className="btn danger" onClick={() => void listening.stop()}>
+    <button
+      className="btn danger"
+      onClick={() => (simulating ? simulator.stop() : void listening.stop())}
+    >
       Stop
     </button>
   ) : (

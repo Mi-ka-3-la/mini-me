@@ -27,6 +27,8 @@ const LOGIC = `reasoning that does not support its conclusion:
 
 const QUESTION = `the most valuable question not yet asked: a missing owner, date, number, definition, success criterion, or a decision that is implied but never stated.`;
 
+const IMPORTANT = `not a problem, a marker: something the listener will want to find again — a decision actually agreed, a date or deadline, a number, a commitment with a named owner, a key fact or a change of direction. ask may be empty for these.`;
+
 export function languageName(lang: AnalyzeRequest['language']): string {
   return LANGUAGES.find((l) => l.id === lang)?.name ?? 'English';
 }
@@ -89,6 +91,7 @@ FLAG TYPES
 TRAP: ${TRAP}
 LOGIC: ${LOGIC}
 QUESTION: ${QUESTION}
+IMPORTANT: ${IMPORTANT}
 
 RULES
 1. Look for new flags only in NEW TRANSCRIPT. Use the earlier transcript and the current watch list as context (for example, to spot a contradiction with something said earlier).
@@ -97,9 +100,12 @@ RULES
 4. A statement that already names its owner, its date, the source of its number, or its evidence (for example "the CFO signed it last Thursday", "confirmed in writing", "the test report is in the folder") is NOT a flag. Do not ask for proof that was just given.
 5. Do not add anything already on the current watch list, in DISMISSED or in ALREADY ASKED, even reworded. If the new talk changes an existing flag, put it in update with the same id and quote.
 6. drop: ids of flags that the new talk clearly resolved.
-7. The watch list holds at most 12 flags. If your additions would make it longer, also drop the weakest flags that are not pinned (minor stakes, or a near-repeat of another flag), so the strongest 12 remain. Never drop a pinned flag.
+7. The watch list holds at most 12 trap, logic and question flags, plus at most 8 important markers. If your additions would exceed a limit, also drop the weakest flags of that kind that are not pinned (minor stakes, or a near-repeat of another flag). Never drop a pinned flag.
 8. Do not invent facts, owners, dates or numbers.
-9. questions: every real question asked in NEW TRANSCRIPT that expects an answer from someone in the meeting (not rhetorical, not small talk, not a request to repeat, and not already in KNOWN QUESTIONS). quote = the exact words of the question, at most 30 words. question = the same question rewritten as one short, clear sentence, in the meeting language. Questions are separate from flags; a question can be both.
+9. topic: every flag and question gets the topic it belongs to. Reuse a name from KNOWN TOPICS exactly when it fits; otherwise make a new short name (2–4 words) in the meeting language. Keep topics broad: a meeting usually has 3–6.
+10. segments: where the conversation in NEW TRANSCRIPT moves to a topic, give the time of the first line about it ("mm:ss", copied from the transcript) and the topic name. Give at least one segment when NEW TRANSCRIPT is not empty.
+11. answered: for each question in OPEN QUESTIONS that NEW TRANSCRIPT clearly answers, its id and the exact words of the answer (at most 25 words).
+12. questions: every real question asked in NEW TRANSCRIPT that expects an answer from someone in the meeting (not rhetorical, not small talk, not a request to repeat, and not already in KNOWN QUESTIONS). quote = the exact words of the question, at most 30 words. question = the same question rewritten as one short, clear sentence, in the meeting language. Questions are separate from flags; a question can be both.
 
 CURRENT WATCH LIST (JSON):
 ${current.length ? JSON.stringify(current) : 'empty'}
@@ -109,6 +115,12 @@ ${dismissed}
 
 ALREADY ASKED BY THE LISTENER (do not raise again):
 ${asked}
+
+KNOWN TOPICS:
+${req.knownTopics.length ? req.knownTopics.map((t) => `- ${t}`).join('\n') : 'none yet'}
+
+OPEN QUESTIONS (not answered yet):
+${req.openQuestions.length ? JSON.stringify(req.openQuestions) : 'none'}
 
 KNOWN QUESTIONS (already reported):
 ${req.knownQuestions.length ? req.knownQuestions.map((q) => `- "${q}"`).join('\n') : 'none'}
@@ -134,7 +146,11 @@ TASKS
    - actions: "Owner — action" only if an owner was named; otherwise put it in open.
    - open: unresolved items.
    Keep topics from the previous summary unless they were merged. Update them with the new information. Keep each item short.
+   Use the names in KNOWN TOPICS exactly for topics that match, so the listener can follow each topic across the screen.
 3. Do not invent facts, owners, dates or numbers. If unsure, leave it out.
+
+KNOWN TOPICS:
+${req.knownTopics.length ? req.knownTopics.map((t) => `- ${t}`).join('\n') : 'none yet'}
 
 PREVIOUS SUMMARY (JSON):
 ${previous}

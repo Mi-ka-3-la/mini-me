@@ -76,7 +76,7 @@ export function buildWatchRequest(s: Session): AnalyzeRequestInput {
     previous: {
       tldr: '',
       topics: [],
-      flags: live.map(({ id, type, title, quote, why, ask, who }) => ({
+      flags: live.map(({ id, type, title, quote, why, ask, who, topic }) => ({
         id,
         type,
         title,
@@ -84,6 +84,7 @@ export function buildWatchRequest(s: Session): AnalyzeRequestInput {
         why,
         ask,
         who,
+        topic: topic ?? '',
       })),
     },
     pinnedIds: live.filter((f) => f.status === 'pinned').map((f) => f.id),
@@ -95,6 +96,11 @@ export function buildWatchRequest(s: Session): AnalyzeRequestInput {
     newTranscript: w.fresh,
     transcriptTrimmed: w.trimmed,
     knownQuestions: s.questions.slice(-100).map((q) => q.quote),
+    openQuestions: s.questions
+      .filter((q) => !q.answeredQuote)
+      .slice(-30)
+      .map((q) => ({ id: q.id, question: q.question })),
+    knownTopics: s.topics.slice(0, 40),
   };
 }
 
@@ -105,6 +111,7 @@ export function buildSummaryRequest(s: Session): AnalyzeRequestInput {
     mode: 'summary',
     ...common(s),
     previous: s.summary ? { tldr: s.summary.tldr, topics: s.summary.topics, flags: [] } : null,
+    knownTopics: s.topics.slice(0, 40),
     transcript: w.earlier,
     newTranscript: w.fresh,
     transcriptTrimmed: w.trimmed,

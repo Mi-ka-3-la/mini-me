@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { KIND } from '../lib/labels';
+import { TopicChip } from './TopicChip';
 import type { ClientFlag } from '../store/types';
 
 type Props = {
@@ -22,15 +23,22 @@ export function FlagCard({ flag, isNew, onStatus, featured = false }: Props) {
       aria-label={`${KIND[flag.type]}: ${flag.title}`}
       data-flag-id={flag.id}
     >
-      <div className="kind">
-        {featured && <span className="ask-now">Ask now · </span>}
-        {KIND[flag.type]}
-        {flag.who && <span className="who"> · {flag.who}</span>}
-        {flag.status === 'pinned' && (
-          <span className="pin-mark" aria-label="Pinned">
-            📌
-          </span>
-        )}
+      <div className="kind-row">
+        <div className="kind">
+          {featured && (
+            <span className="ask-now">
+              {flag.type === 'important' ? 'Newest · ' : 'Ask now · '}
+            </span>
+          )}
+          {KIND[flag.type]}
+          {flag.who && <span className="who"> · {flag.who}</span>}
+          {flag.status === 'pinned' && (
+            <span className="pin-mark" aria-label="Pinned">
+              📌
+            </span>
+          )}
+        </div>
+        <TopicChip name={flag.topic} />
       </div>
       <div className="title">{flag.title}</div>
       {flag.ask && (

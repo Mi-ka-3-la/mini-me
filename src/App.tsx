@@ -14,6 +14,8 @@ import { SummaryColumn } from './components/SummaryColumn';
 import { WatchList } from './components/WatchList';
 import { CopyNotesButton } from './components/ExportDialog';
 import { OfflineBanner } from './components/OfflineBanner';
+import { SimulationBanner } from './components/SimulationDialog';
+import { simulator } from './demo/simulator';
 import { useSession } from './store/session';
 import { AnalysisBanner, AnalysisControls, AnalysisStatus } from './components/AnalysisControls';
 import { analysisRunner } from './analysis/runner';
@@ -47,10 +49,11 @@ export function App() {
         <StartStopButton />
         <AnalysisControls />
         <CopyNotesButton />
-        <NewMeetingButton />
+        <NewMeetingButton onBeforeClear={() => simulator.stop()} />
         <Menu />
       </header>
       <SetupStrip />
+      <SimulationBanner />
       <OfflineBanner />
       <ListenBanner />
       <AnalysisBanner />

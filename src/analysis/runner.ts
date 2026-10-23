@@ -137,6 +137,12 @@ export class AnalysisRunner {
         const { flags, newIds } = mergeFlags(cur.session.flags, res.data.flags, now);
         cur.applyWatch({ sessionId: s.id, flags, newFlagIds: newIds });
         cur.addQuestions({ sessionId: s.id, questions: res.data.questions, at: now });
+        useSession.getState().applyThreads({
+          sessionId: s.id,
+          segments: res.data.segments,
+          answered: res.data.answered,
+          at: now,
+        });
       } else if ('tldr' in res.data) {
         cur.applySummary({
           sessionId: s.id,

@@ -41,7 +41,15 @@ export type Question = {
   quote: string;
   question: string;
   answer?: Answer;
+  /** Topic thread (ADR-21) */
+  topic?: string;
+  /** Answered in the conversation itself (ADR-21) */
+  answeredQuote?: string;
+  answeredAt?: number;
 };
+
+/** From time t (ms since start) on, the talk is about this topic (ADR-21). */
+export type Segment = { t: number; topic: string };
 
 /** The part of the session that is saved to localStorage. */
 export type Session = {
@@ -61,6 +69,9 @@ export type Session = {
   /** lines up to this index are covered by the summary */
   summaryUpToLineIndex: number;
   questions: Question[];
+  /** Topic names in order of first appearance; the index picks the colour (ADR-21). */
+  topics: string[];
+  segments: Segment[];
   /** epoch ms of the last summary call */
   lastSummaryAt: number | null;
 };
