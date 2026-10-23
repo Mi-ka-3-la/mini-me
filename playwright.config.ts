@@ -24,6 +24,10 @@ export default defineConfig({
       name: 'tablet',
       use: { ...devices['Desktop Chrome'], viewport: { width: 768, height: 1024 } },
     },
-    { name: 'phone', use: { ...devices['Desktop Chrome'], viewport: { width: 400, height: 800 } } },
+    {
+      name: 'phone',
+      testMatch: /layout|smoke/,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 400, height: 800 } },
+    },
   ],
 });

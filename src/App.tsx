@@ -10,6 +10,7 @@ import { NewMeetingButton } from './components/NewMeetingButton';
 import { ListenIndicator, ListenStatusText, StartStopButton } from './components/ListenControls';
 import { SetupStrip } from './components/SetupStrip';
 import { ListenBanner } from './components/ListenBanner';
+import { TranscriptColumn } from './components/TranscriptColumn';
 
 export function App() {
   const narrow = useMediaQuery(NARROW);
@@ -34,11 +35,7 @@ export function App() {
       <ListenBanner />
       <Tabs active={tab} onChange={setTab} newFlags={0} />
       <main className="grid">
-        <Column id="transcript" title="Live transcript" hidden={hidden('transcript')}>
-          <div className="scroll">
-            <div className="empty">Nothing yet.</div>
-          </div>
-        </Column>
+        <TranscriptColumn hidden={hidden('transcript')} />
         <Column id="summary" title="Running summary" hidden={hidden('summary')}>
           <div className="scroll">
             <div className="empty">
