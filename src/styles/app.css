@@ -852,3 +852,92 @@ details.asked-section summary {
     animation: none;
   }
 }
+
+/* Added (ADR-21): topic threads. One colour per topic, used in all three columns. */
+[data-topic='0'] {
+  --tc: var(--t0);
+}
+[data-topic='1'] {
+  --tc: var(--t1);
+}
+[data-topic='2'] {
+  --tc: var(--t2);
+}
+[data-topic='3'] {
+  --tc: var(--t3);
+}
+[data-topic='4'] {
+  --tc: var(--t4);
+}
+[data-topic='5'] {
+  --tc: var(--t5);
+}
+.topic-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--body);
+  font-size: 11.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--tc);
+  font-weight: 600;
+}
+.topic-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tc);
+  flex: none;
+}
+.line[data-topic] {
+  box-shadow: inset 3px 0 0 var(--tc);
+  padding-left: 8px;
+  margin-left: -8px;
+}
+.topic[data-topic] {
+  border-left: 3px solid var(--tc);
+  padding-left: 10px;
+}
+.topic[data-topic] h3 {
+  color: var(--tc);
+}
+.kind-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+/* Important markers: neutral, not a problem. */
+.flag.important {
+  --c: var(--mark);
+  --cs: var(--mark-soft);
+}
+.q-status {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+.q-status.open {
+  background: var(--trap-soft);
+  color: var(--trap);
+}
+.q-status.answered {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.question.answered-in-talk {
+  opacity: 0.8;
+}
+.answered-quote {
+  font-size: 12.5px;
+  margin: 2px 0 8px;
+}
+.answered-quote b {
+  color: var(--ok);
+}

@@ -1,0 +1,49 @@
+[00:04] Hannah (Client PM): Okay, let's start. The goal today is to confirm the go-live for the new payroll integration and agree what still needs to happen before then.
+[00:16] Marek (Vendor lead): Sure. From our side the integration build is complete. We finished the last interface, the one that sends net pay to the bank file, on Monday.
+[00:29] Hannah (Client PM): Great. So we keep the first of March as the go-live date.
+[00:35] Marek (Vendor lead): The first of March works if the data migration dry run passes next week. If it fails we need at least ten working days to fix and rerun it.
+[00:49] Hannah (Client PM): The dry run will pass, the data is clean. We cleaned it in December.
+[00:57] Priya (HR Ops): We cleaned the employee master data in December. The historical absence records were not part of that clean-up.
+[01:09] Hannah (Client PM): Absences are a small thing, they'll come over fine.
+[01:15] Marek (Vendor lead): For the parallel run we planned two payroll cycles, January and February, comparing old and new results line by line.
+[01:27] Hannah (Client PM): I'd like to cut that to one cycle. The January parallel run had zero differences, so the system is clearly correct.
+[01:38] Priya (HR Ops): January had no overtime and no bonuses though. February is the month with the annual bonus.
+[01:46] Hannah (Client PM): Still, zero differences is zero differences.
+[01:52] Tom (Finance): On the budget side, the vendor quote for hypercare was forty thousand. I've pre-approved that, it's covered by the Q1 contingency, the CFO signed it last Thursday.
+[02:06] Hannah (Client PM): Good, thanks Tom.
+[02:09] Marek (Vendor lead): One more point, the bank needs to whitelist our new SFTP server before the first payment run.
+[02:17] Hannah (Client PM): That's just paperwork with the bank, someone will sort it out.
+[02:23] Marek (Vendor lead): It usually takes the bank two to three weeks.
+[02:28] Hannah (Client PM): Fine. Next topic, training. The HR team will be trained in the last week of February.
+[02:37] Priya (HR Ops): Can I ask who is preparing the training material?
+[02:41] Hannah (Client PM): We'll figure that out. Let's not get stuck on that today.
+[02:47] Tom (Finance): Another thing from finance, the new system will reduce payroll processing costs by thirty percent.
+[02:55] Priya (HR Ops): Where does the thirty percent come from?
+[02:58] Tom (Finance): That's what the vendor said in the sales presentation.
+[03:04] Hannah (Client PM): And the vendor are the experts, so we can take that number into the business case.
+[03:11] Marek (Vendor lead): To be fair, that figure was for a client with full self-service. You haven't bought the self-service module.
+[03:20] Hannah (Client PM): Let's keep the number for now, we can refine it later.
+[03:26] Priya (HR Ops): On the cut-over weekend, we need someone from IT to be on call for the bank file.
+[03:33] Tom (Finance): I checked with IT this morning. Andrei is on call that weekend, his manager confirmed it in writing.
+[03:41] Hannah (Client PM): Perfect.
+[03:44] Marek (Vendor lead): Then there's the question of the old system. Do we switch it off on the first of March or keep it read-only?
+[03:52] Hannah (Client PM): There are only two options here. Either we switch it off on day one and save the licence, or we keep it running in full for a year.
+[04:03] Priya (HR Ops): We could keep it read-only for the audit period, that's much cheaper.
+[04:08] Hannah (Client PM): Let's not complicate this. I'll note we switch it off.
+[04:13] Marek (Vendor lead): Okay. Also, the payslip layout. Your works council has to approve the new payslip format.
+[04:21] Hannah (Client PM): I've already shown the works council the draft and nobody objected, so it's approved.
+[04:29] Priya (HR Ops): Did they see the final version, with the new deduction lines?
+[04:33] Hannah (Client PM): It's basically the same.
+[04:37] Marek (Vendor lead): For the record, the deduction lines were added after that meeting.
+[04:43] Hannah (Client PM): Let's move on. Reporting. Finance wants the monthly payroll journal in the new format from March.
+[04:52] Tom (Finance): Yes. And while you're at it, the journal should also split costs by project code. Small thing.
+[05:00] Marek (Vendor lead): Project-code splitting isn't in the current scope. It needs a mapping table and changes to the posting logic.
+[05:08] Hannah (Client PM): It's a small change, let's just add it into the March release.
+[05:14] Marek (Vendor lead): I'd need to estimate it first.
+[05:17] Hannah (Client PM): We'll fix any issues with it after go-live.
+[05:22] Priya (HR Ops): Regarding the system access for HR users, we sent the user list to IT on Friday and IT confirmed accounts will be ready by the twentieth of February.
+[05:33] Hannah (Client PM): Good. I think we're aligned then. Nobody's raised any concerns, so we're all agreed on the first of March with one parallel run.
+[05:43] Tom (Finance): I need to see the bonus numbers before I agree to that.
+[05:48] Hannah (Client PM): We need a yes today, the steering committee meets tomorrow.
+[05:54] Marek (Vendor lead): From our side, we can live with the date if the dry run passes.
+[06:00] Hannah (Client PM): Great. So the first of March it is. Thanks everyone.

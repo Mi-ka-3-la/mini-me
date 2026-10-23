@@ -68,7 +68,7 @@ describe('question detection', () => {
 
   it('the watch prompt asks for questions and lists known ones', () => {
     const p = buildWatchPrompt(req({ knownQuestions: ['Who owns this?'] }));
-    expect(p).toContain('9. questions: every real question asked in NEW TRANSCRIPT');
+    expect(p).toContain('12. questions: every real question asked in NEW TRANSCRIPT');
     expect(p).toContain('KNOWN QUESTIONS (already reported):\n- "Who owns this?"');
   });
 });
@@ -189,6 +189,8 @@ describe('buildAnswerRequest', () => {
       summaryUpToLineIndex: 0,
       lastSummaryAt: null,
       questions: [],
+      topics: [],
+      segments: [],
       lines: [
         { id: 'a', t: 1000, text: 'How would you sort out tech debt?', final: true, origin: 'stt' },
       ],

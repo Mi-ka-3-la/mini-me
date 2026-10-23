@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { getTheme, setTheme, type Theme } from '../lib/theme';
 import { useAuth } from '../store/auth';
+import { SimulationDialog } from './SimulationDialog';
 
 export function Menu() {
   const [open, setOpen] = useState(false);
+  const [sim, setSim] = useState(false);
   const [theme, setThemeState] = useState<Theme>(getTheme());
   const ref = useRef<HTMLDivElement>(null);
   const passcode = useAuth((s) => s.passcode);
@@ -42,6 +44,15 @@ export function Menu() {
       </button>
       {open && (
         <div className="menu-list" role="menu">
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              setSim(true);
+            }}
+          >
+            Simulate a meeting…
+          </button>
           <button role="menuitem" onClick={() => pick(next[theme])}>
             Theme: {theme === 'system' ? 'System' : theme === 'light' ? 'Light' : 'Dark'}
           </button>
@@ -68,6 +79,7 @@ export function Menu() {
           )}
         </div>
       )}
+      {sim && <SimulationDialog onClose={() => setSim(false)} />}
     </div>
   );
 }

@@ -12,7 +12,8 @@ const topic = z.object({
 
 const flag = z.object({
   id: z.string(),
-  type: z.enum(['trap', 'logic', 'question']),
+  type: z.enum(['trap', 'logic', 'question', 'important']),
+  topic: z.string().optional(),
   title: z.string(),
   quote: z.string(),
   why: z.string(),
@@ -60,6 +61,9 @@ const sessionSchema = z.object({
         t: z.number(),
         quote: z.string(),
         question: z.string(),
+        topic: z.string().optional(),
+        answeredQuote: z.string().optional(),
+        answeredAt: z.number().optional(),
         answer: z
           .object({
             question: z.string(),
@@ -71,6 +75,8 @@ const sessionSchema = z.object({
       }),
     )
     .default([]),
+  topics: z.array(z.string()).default([]),
+  segments: z.array(z.object({ t: z.number(), topic: z.string() })).default([]),
 });
 
 const STORED_VERSION = 1;

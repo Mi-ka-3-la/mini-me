@@ -32,6 +32,7 @@ import { analyzeRequestSchema } from '../shared/schema.js';
 import type { FlagType, Language } from '../shared/types.js';
 import { buildSummaryRequest, buildWatchRequest } from '../src/analysis/buildRequest.js';
 import { mergeFlags } from '../src/analysis/mergeFlags.js';
+import { withTopics } from '../src/lib/topics.js';
 import type { ClientFlag, Line, Session, Speaker } from '../src/store/types.js';
 
 type Item = { id?: string; type?: FlagType; quote: string; note?: string };
@@ -66,6 +67,9 @@ type RunResult = {
   flags: FlagScore[];
   tldr: string;
   topics: number;
+  importantCount?: number;
+  questionsFound?: number;
+  topicsUsed?: number;
 };
 
 const ROOT = join(import.meta.dirname, '..', 'tests', 'fixtures', 'meetings');
@@ -128,6 +132,8 @@ function loadSession(dir: string, exp: Expected, keepSpeakers: boolean): Session
     summaryUpToLineIndex: 0,
     lastSummaryAt: null,
     questions: [],
+    topics: [],
+    segments: [],
   };
 }
 
@@ -176,7 +182,7 @@ function mockCall(exp: Expected): ModelCall {
         ask: 'Who owns this?',
         who: '',
       }));
-    return out({ add, update: [], drop: [], questions: [] });
+    return out({ add, update: [], drop: [], questions: [], segments: [], answered: [] });
   };
 }
 
@@ -258,19 +264,43 @@ async function runFixture(
       }
       if ('flags' in out.result) {
         const merged = mergeFlags(session.flags, out.result.flags, Date.now());
-        session = { ...session, flags: merged.flags, analyzedUpToLineIndex: cut };
+        session = {
+          ...session,
+          flags: merged.flags,
+          analyzedUpToLineIndex: cut,
+          questions: [
+            ...session.questions,
+            ...out.result.questions.map((q) => ({ ...q, t: full.lines[cut - 1]?.t ?? 0 })),
+          ],
+          topics: withTopics(session.topics, [
+            ...merged.flags.map((f) => f.topic),
+            ...out.result.questions.map((q) => q.topic),
+            ...out.result.segments.map((g) => g.topic),
+          ]),
+          segments: [...session.segments, ...out.result.segments],
+        };
       } else if ('tldr' in out.result) {
         session = {
           ...session,
           summary: { tldr: out.result.tldr, topics: out.result.topics },
           summaryUpToLineIndex: cut,
+          topics: withTopics(
+            session.topics,
+            out.result.topics.map((t) => t.topic),
+          ),
         };
       }
     }
     if (k === CHUNKS - 2) idsBeforeLast = session.flags.map((f) => f.id);
   }
 
-  const flags: ClientFlag[] = session.flags.filter((f) => f.status === 'active');
+  // Important markers (ADR-21) are not problems, so they are not scored against planted items.
+  const flags: ClientFlag[] = session.flags.filter(
+    (f) => f.status === 'active' && f.type !== 'important',
+  );
+  const importantCount = session.flags.filter((f) => f.type === 'important').length;
+  const questionsFound = session.questions.length;
+  const topicsUsed = session.topics.length;
   const scored: FlagScore[] = flags.map((f) => ({
     id: f.id,
     type: f.type,
@@ -307,6 +337,9 @@ async function runFixture(
     missed: exp.planted.filter((p) => !hit.has(p.id ?? '')).map((p) => `${p.id} (${p.type})`),
     flags: scored,
     tldr: session.summary?.tldr ?? '',
+    importantCount,
+    questionsFound,
+    topicsUsed,
     topics: session.summary?.topics.length ?? 0,
   };
 }
@@ -359,6 +392,10 @@ async function main() {
       for (const fl of res.flags)
         console.info(`   [${fl.match}] ${fl.type}: ${fl.title} — "${fl.quote}"`);
       if (res.missed.length) console.info(`   missed: ${res.missed.join(', ')}`);
+      if (res.ok)
+        console.info(
+          `   also: ${res.importantCount} important markers, ${res.questionsFound} questions, ${res.topicsUsed} topics`,
+        );
     }
   }
 

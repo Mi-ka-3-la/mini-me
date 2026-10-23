@@ -1,0 +1,48 @@
+[00:05] Ioana (Director financiar): Bună ziua tuturor. Scopul de azi este să stabilim data de go-live pentru noul modul de facturare și integrarea cu e-Factura.
+[00:15] Radu (Consultant ERP): Din partea noastră configurarea e gata. Am terminat săptămâna trecută șabloanele de factură și regulile de TVA.
+[00:25] Ioana (Director financiar): Perfect. Atunci rămânem pe 1 aprilie, cum am stabilit.
+[00:31] Radu (Consultant ERP): Putem pe 1 aprilie dacă primim certificatul digital pentru SPV până pe 15 martie.
+[00:39] Ioana (Director financiar): Certificatul e o formalitate, îl luăm noi cumva.
+[00:45] Mihai (IT): Ultima dată când am cerut un certificat calificat a durat trei săptămâni.
+[00:51] Ioana (Director financiar): Acum e altfel.
+[00:54] Elena (Contabilitate): Pentru testare, am trimis zece facturi de probă în mediul de test ANAF și toate au fost validate.
+[01:03] Ioana (Director financiar): Excelent. Dacă zece facturi au trecut, înseamnă că toate facturile vor trece.
+[01:10] Elena (Contabilitate): Cele zece erau toate facturi simple, fără storno și fără facturi în valută.
+[01:17] Ioana (Director financiar): Mă rog, principiul e același.
+[01:21] Radu (Consultant ERP): Mai e un punct. Facturile de avans trebuie regularizate altfel în noul sistem. Asta trebuie decis de cineva din contabilitate.
+[01:31] Ioana (Director financiar): Rezolvăm noi regularizările după lansare, nu e urgent.
+[01:37] Elena (Contabilitate): La închiderea de lună din aprilie o să avem în jur de două sute de avansuri deschise.
+[01:44] Ioana (Director financiar): Vedem atunci.
+[01:47] Mihai (IT): Despre server, am verificat ieri capacitatea. Avem spațiu pentru încă trei ani de documente, raportul e în folderul proiectului.
+[01:56] Ioana (Director financiar): Bine.
+[01:58] Andrei (Vânzări): Din partea vânzărilor, noul modul ne va scurta încasările cu douăzeci de zile.
+[02:05] Elena (Contabilitate): De unde vine cifra de douăzeci de zile?
+[02:08] Andrei (Vânzări): Așa am estimat noi, e o cifră realistă.
+[02:12] Ioana (Director financiar): O trecem în raportul pentru board.
+[02:16] Radu (Consultant ERP): Pentru instruire, propunem două sesiuni pentru contabilitate în ultima săptămână din martie.
+[02:24] Elena (Contabilitate): Cine pregătește manualul de utilizare în română?
+[02:28] Ioana (Director financiar): Se ocupă cineva. Nu intrăm acum în detalii.
+[02:33] Radu (Consultant ERP): Despre sistemul vechi, trebuie să decidem dacă îl oprim complet sau îl păstrăm pentru consultare.
+[02:41] Ioana (Director financiar): Avem doar două variante: ori îl oprim de tot pe 1 aprilie, ori plătim licența completă încă doi ani.
+[02:50] Mihai (IT): Putem păstra o copie doar pentru citire, costă mult mai puțin.
+[02:55] Ioana (Director financiar): Nu complicăm. Îl oprim.
+[02:58] Andrei (Vânzări): Încă ceva, ar fi bine ca noul modul să trimită automat și rapoartele de comisioane pentru agenți. E un detaliu mic.
+[03:07] Radu (Consultant ERP): Rapoartele de comisioane nu sunt în scope. Ar însemna o dezvoltare separată, cu calcule noi.
+[03:14] Ioana (Director financiar): Adăugați-le, nu poate fi atât de greu.
+[03:18] Mihai (IT): Pentru weekendul de migrare, am confirmat cu echipa: Cristian e de gardă sâmbătă și duminică, aprobat de șeful lui pe e-mail.
+[03:27] Ioana (Director financiar): Foarte bine.
+[03:29] Elena (Contabilitate): Și pentru soldurile de deschidere, am făcut reconcilierea pe februarie și diferențele sunt zero, documentul e semnat de auditor.
+[03:39] Ioana (Director financiar): Super. Furnizorul a lucrat cu multe firme mari, deci știe ce face și nu trebuie să verificăm planul de migrare.
+[03:47] Radu (Consultant ERP): Totuși, planul de migrare are nevoie de aprobarea voastră formală.
+[03:52] Ioana (Director financiar): L-am prezentat la ședința de luni și n-a obiectat nimeni, deci e aprobat.
+[03:59] Mihai (IT): La ședința de luni nu era nimeni de la IT.
+[04:03] Ioana (Director financiar): Detaliu.
+[04:05] Radu (Consultant ERP): Mai am o întrebare: cine din partea voastră semnează acceptanța finală a proiectului?
+[04:11] Ioana (Director financiar): O să vedem pe parcurs.
+[04:14] Elena (Contabilitate): Și cum procedăm dacă ANAF respinge facturi în prima săptămână?
+[04:19] Ioana (Director financiar): Nu o să le respingă, am testat deja.
+[04:23] Ioana (Director financiar): Bun, cred că suntem toți de acord. Nimeni nu are obiecții, deci mergem pe 1 aprilie.
+[04:30] Mihai (IT): Eu aș vrea întâi confirmarea pentru certificat.
+[04:34] Ioana (Director financiar): Avem nevoie de un da azi, mâine raportez la board.
+[04:39] Radu (Consultant ERP): Din partea noastră, data e posibilă doar cu certificatul la timp.
+[04:44] Ioana (Director financiar): Rămâne 1 aprilie. Mulțumesc tuturor.

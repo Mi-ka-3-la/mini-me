@@ -1,5 +1,6 @@
 import { answerQuestion } from '../analysis/runner';
 import { mmss } from '../lib/time';
+import { TopicChip } from './TopicChip';
 import { useAuth } from '../store/auth';
 import { useSession } from '../store/session';
 import type { Question } from '../store/types';
@@ -60,14 +61,26 @@ export function QuestionsView() {
       {list.map((q, i) => (
         <article
           key={q.id}
-          className={`question${i === 0 ? ' latest' : ''}`}
+          className={`question${i === 0 ? ' latest' : ''}${q.answeredQuote ? ' answered-in-talk' : ''}`}
           aria-label={`Question: ${q.question}`}
         >
-          <div className="kind">
-            Question <span className="who">· {mmss(q.t)}</span>
+          <div className="kind-row">
+            <div className="kind">
+              Question <span className="who">· {mmss(q.t)}</span>
+              <span className={`q-status ${q.answeredQuote ? 'answered' : 'open'}`}>
+                {q.answeredQuote ? 'Answered' : 'Open'}
+              </span>
+            </div>
+            <TopicChip name={q.topic} />
           </div>
           <div className="question-text">{q.question}</div>
           <q>{q.quote}</q>
+          {q.answeredQuote && (
+            <div className="answered-quote">
+              <b>Answered{q.answeredAt !== undefined ? ` at ${mmss(q.answeredAt)}` : ''}:</b> “
+              {q.answeredQuote}”
+            </div>
+          )}
           {q.answer ? (
             <AnswerPlan q={q} />
           ) : (

@@ -55,6 +55,7 @@ export function mergeFlags(
           ? {}
           : { type: inc.type, title: inc.title, quote: inc.quote, why: inc.why, ask: inc.ask }),
         who: inc.who || existing.who,
+        topic: inc.topic || existing.topic,
       });
       continue;
     }

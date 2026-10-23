@@ -1,6 +1,7 @@
 import { useAuth } from '../store/auth';
 import { useSession } from '../store/session';
 import { Column } from './Column';
+import { topicSlot } from '../lib/topics';
 
 function Items({ items, tag, label }: { items: string[]; tag?: string; label?: string }) {
   return (
@@ -21,6 +22,7 @@ function Items({ items, tag, label }: { items: string[]; tag?: string; label?: s
  */
 export function SummaryColumn({ hidden }: { hidden: boolean }) {
   const summary = useSession((s) => s.session.summary);
+  const topics = useSession((s) => s.session.topics);
   const running = useSession((s) => s.analysis.summaryRunning);
   const lang = useSession((s) => s.session.language);
   const canCall = useAuth((s) => !!s.passcode && !s.rejected);
@@ -51,7 +53,11 @@ export function SummaryColumn({ hidden }: { hidden: boolean }) {
               </div>
             )}
             {summary.topics.map((t, i) => (
-              <div className="topic" key={`${i}-${t.topic}`}>
+              <div
+                className="topic"
+                key={`${i}-${t.topic}`}
+                data-topic={topicSlot(topics, t.topic) ?? undefined}
+              >
                 <h3>{t.topic}</h3>
                 <ul>
                   <Items items={t.points} />

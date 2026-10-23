@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import type { Language } from '../../shared/types';
 import { newId } from '../lib/ids';
+import { withTopics } from '../lib/topics';
+
+export { withTopics };
 import { KEYS, readString, writeString } from '../lib/storage';
 import { clearSession, hasContent, loadSession, saveSession } from './persist';
 import type {
@@ -10,6 +13,7 @@ import type {
   Interim,
   Line,
   Question,
+  Segment,
   Session,
   Speaker,
   Summary,
@@ -83,6 +87,13 @@ type Actions = {
   }) => void;
   /** Applies a watch result, if it belongs to the current session. */
   applyWatch: (r: { sessionId: string; flags: ClientFlag[]; newFlagIds: string[] }) => void;
+  /** Topic segments and questions answered in the conversation (ADR-21). */
+  applyThreads: (r: {
+    sessionId: string;
+    segments: Segment[];
+    answered: { id: string; quote: string }[];
+    at: number;
+  }) => void;
   setBackground: (b: string) => void;
   addQuestions: (r: { sessionId: string; questions: Omit<Question, 't'>[]; at: number }) => void;
   setAnswering: (id: string | null, error?: { id: string; message: string } | null) => void;
@@ -114,6 +125,8 @@ export function emptySession(language: Language = lastLanguage(), now = Date.now
     summaryUpToLineIndex: 0,
     lastSummaryAt: null,
     questions: [],
+    topics: [],
+    segments: [],
   };
 }
 
@@ -253,7 +266,14 @@ export const useSession = create<SessionState>((set, get) => ({
     set((st) => {
       if (st.session.id !== sessionId) return {};
       return {
-        session: { ...st.session, flags },
+        session: {
+          ...st.session,
+          flags,
+          topics: withTopics(
+            st.session.topics,
+            flags.map((f) => f.topic),
+          ),
+        },
         analysis: {
           ...st.analysis,
           running: false,
@@ -263,6 +283,33 @@ export const useSession = create<SessionState>((set, get) => ({
           retryAt: 0,
           newFlagIds,
           unseenFlags: st.analysis.unseenFlags + newFlagIds.length,
+        },
+      };
+    }),
+  applyThreads: ({ sessionId, segments, answered, at }) =>
+    set((st) => {
+      if (st.session.id !== sessionId) return {};
+      const s = st.session;
+      const known = new Set(s.segments.map((g) => `${g.t}|${g.topic}`));
+      const merged = [
+        ...s.segments,
+        ...segments.filter((g) => !known.has(`${g.t}|${g.topic}`)),
+      ].sort((a, b) => a.t - b.t);
+      const byId = new Map(answered.map((a) => [a.id, a.quote]));
+      const t = Math.max(0, at - s.startedAt);
+      return {
+        session: {
+          ...s,
+          segments: merged,
+          topics: withTopics(
+            s.topics,
+            segments.map((g) => g.topic),
+          ),
+          questions: s.questions.map((q) =>
+            byId.has(q.id) && !q.answeredQuote
+              ? { ...q, answeredQuote: byId.get(q.id), answeredAt: t }
+              : q,
+          ),
         },
       };
     }),
@@ -281,6 +328,10 @@ export const useSession = create<SessionState>((set, get) => ({
         session: {
           ...st.session,
           questions: [...st.session.questions, ...questions.map((q) => ({ ...q, t }))],
+          topics: withTopics(
+            st.session.topics,
+            questions.map((q) => q.topic),
+          ),
         },
       };
     }),
@@ -301,7 +352,14 @@ export const useSession = create<SessionState>((set, get) => ({
     set((st) => {
       if (st.session.id !== sessionId) return {};
       return {
-        session: { ...st.session, summary },
+        session: {
+          ...st.session,
+          summary,
+          topics: withTopics(
+            st.session.topics,
+            summary.topics.map((t) => t.topic),
+          ),
+        },
         analysis: {
           ...st.analysis,
           summaryRunning: false,

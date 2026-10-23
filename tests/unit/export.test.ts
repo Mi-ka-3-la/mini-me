@@ -78,6 +78,8 @@ const s: Session = {
       firstSeenAt: 1,
     },
   ],
+  topics: [],
+  segments: [],
   analyzedUpToLineIndex: 2,
   analysisCalls: 1,
   lastAnalysisAt: 1,

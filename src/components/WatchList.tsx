@@ -12,6 +12,7 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'trap', label: 'Traps' },
   { id: 'logic', label: 'Logic errors' },
   { id: 'question', label: 'Questions' },
+  { id: 'important', label: 'Important' },
 ];
 const HIGHLIGHT_MS = 4000;
 
@@ -25,6 +26,7 @@ export function WatchList({ hidden }: { hidden: boolean }) {
   const [filter, setFilter] = useState<Filter>('all');
   const [view, setView] = useState<'flags' | 'questions'>('flags');
   const questionCount = useSession((s) => s.session.questions.length);
+  const openCount = useSession((s) => s.session.questions.filter((q) => !q.answeredQuote).length);
   const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export function WatchList({ hidden }: { hidden: boolean }) {
               aria-pressed={view === 'questions'}
               onClick={() => setView('questions')}
             >
-              Questions asked{questionCount ? ` (${questionCount})` : ''}
+              Questions asked{questionCount ? ` (${openCount} open)` : ''}
             </button>
           </div>
           {view === 'flags' && (
