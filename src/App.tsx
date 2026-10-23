@@ -7,6 +7,9 @@ import { PasscodeGate } from './components/PasscodeGate';
 import { useAuth } from './store/auth';
 import { ResumePrompt } from './components/ResumePrompt';
 import { NewMeetingButton } from './components/NewMeetingButton';
+import { ListenIndicator, ListenStatusText, StartStopButton } from './components/ListenControls';
+import { SetupStrip } from './components/SetupStrip';
+import { ListenBanner } from './components/ListenBanner';
 
 export function App() {
   const narrow = useMediaQuery(NARROW);
@@ -18,14 +21,17 @@ export function App() {
     <div className="app">
       <header className="bar">
         <h1 className="brand">
-          <span className="live" aria-hidden="true" />
+          <ListenIndicator />
           Meeting Copilot
         </h1>
-        <span className="status">Ready</span>
+        <ListenStatusText />
         <span className="spacer" />
+        <StartStopButton />
         <NewMeetingButton />
         <Menu />
       </header>
+      <SetupStrip />
+      <ListenBanner />
       <Tabs active={tab} onChange={setTab} newFlags={0} />
       <main className="grid">
         <Column id="transcript" title="Live transcript" hidden={hidden('transcript')}>
