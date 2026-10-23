@@ -1,8 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { installFakeSpeech, skipGate } from './fakeSpeech';
 
-test.use({ viewport: { width: 1280, height: 800 } });
-
 test('start and stop listening in the chosen language', async ({ page }) => {
   await installFakeSpeech(page);
   await page.goto('/');

@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-test.use({ viewport: { width: 1280, height: 800 } });
-
 test('wrong passcode is refused, right one unlocks, sign out returns to the gate', async ({
   page,
 }) => {
