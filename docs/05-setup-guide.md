@@ -8,6 +8,7 @@ These are the steps only you can do, because they involve your accounts, payment
 1. Create a new private repository, for example `meeting-copilot`.
 2. Copy this whole folder into it: `CLAUDE.md` goes in the root, and `docs/` stays as is.
 3. Open Claude Code on this repository and paste the content of `KICKOFF_PROMPT.md`.
+4. For the prompt evaluation: repository → **Settings → Secrets and variables → Actions → New repository secret**, name `ANTHROPIC_API_KEY`, value the key from step 2. The `Eval` workflow (tab **Actions**) uses it. GitHub never shows the value again, not even to Claude Code.
 
 ### 2. Anthropic API key (for the analysis)
 1. Go to the Claude Console (console.anthropic.com) and sign in, or create an account.
@@ -37,7 +38,7 @@ Then **Deployments → Redeploy** so the new values are picked up.
 1. Open the production URL that Vercel shows, on your tablet.
 2. Enter the passcode.
 3. Allow the microphone when asked.
-4. **Add to Home Screen**. On iPad: Safari → Share → Add to Home Screen. On Android: Chrome menu → Add to Home screen / Install app.
+4. On iPad, keep using it in a Safari tab. Speech recognition is reported to fail in web apps started from the Home Screen, so do not use **Add to Home Screen** there until it is tested. Safari's speech recognition needs **Settings → Apple Intelligence & Siri** (or **Siri**) and **Keyboard → Enable Dictation** turned on. On Android, Chrome menu → Add to Home screen is fine.
 5. Test with a video playing from the laptop before using it in a real meeting.
 
 ## Phase 1 — added steps
@@ -51,5 +52,6 @@ Only after the Phase 0 decision gate and spike T1.0 confirm it.
 ## Good practice
 
 - Tell meeting participants the meeting is being transcribed.
+- In Phase 0 the audio goes to the browser's speech service: Google for Chrome, Apple for Safari, Microsoft for Edge. Count that third party in the client-policy check below.
 - For client meetings, check whether the client contract or Yopeso policy allows sending meeting content to third-party AI services. Some engagements forbid it.
 - Rotate the API keys if you ever suspect they leaked. Create a new one, update Vercel, delete the old one.
