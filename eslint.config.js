@@ -27,4 +27,8 @@ export default tseslint.config(
       'no-console': ['error', { allow: ['info', 'warn', 'error'] }],
     },
   },
+  {
+    files: ['tests/**/*.{ts,tsx}'],
+    rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
+  },
 );
