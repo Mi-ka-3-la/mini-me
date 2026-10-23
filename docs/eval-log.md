@@ -22,9 +22,26 @@ Reading the numbers:
 
 ## Runs
 
-### 2026-10-23 — first real run: not done yet
+### 2026-10-23 — claude-sonnet-5-5, effort medium, thinking adaptive, no speaker names (first real run)
 
-The sandbox where Phase 0 was built cannot reach the Anthropic API and has no key, by design. The first real result needs one manual run of the **Eval** workflow after the `ANTHROPIC_API_KEY` secret is added. Suggested first runs, in this order: default settings (`medium`, `adaptive`), then `thinking: minimal`, then `effort: low`, to see which meets the 15 s latency target without losing recall.
+GitHub Actions run "Eval #2", one run per fixture.
+
+| Fixture | Recall | Precision | Decoys | Stability | Flags | Slowest call |
+|---|---|---|---|---|---|---|
+| en-crm-vendor | 62% | 92% | 0 | 91% | 12 | 25.0 s |
+| en-payroll-golive | 54% | 92% | 1 | 82% | 12 | 26.8 s |
+| ro-efactura-erp | 62% | 92% | 1 | 82% | 12 | 25.0 s |
+| ro-portal-clinici | 58% | 92% | 1 | 64% | 12 | 26.7 s |
+
+**Overall:** recall 59% (target ≥ 60%), precision 92% (≥ 70%), decoy hits 3 (≤ 1), stability 80%, type agreement 87%. Latency p50 20.3 s, p95 26.8 s (target < 15 s). Tokens in 56 407, out 36 212. Retries 0. **Below target on recall (just), decoys and latency.**
+
+What the flags show (observation, from the run log):
+- Every fixture ended with exactly 12 flags, the cap. Most missed planted items come late in the meeting (p10–p13). Interpretation: the list fills up early, partly with sound but minor flags, and later, sharper items have no room.
+- All 3 decoy hits are of type "question" and ask for evidence of something that was already evidenced (a CFO signature, an on-call confirmation, a CEO approval). Interpretation: the model treats "question" as a catch-all.
+- Precision is high: almost every flag is either planted or acceptable.
+- Romanian output is in Romanian with correct diacritics, and Romanian quotes passed the grounding check.
+
+Candidate changes, not yet made (each needs an eval run before and after): ask the model to replace the weakest flag when the list is full rather than keep the oldest; say that a statement that already names its evidence, owner or date is not a question to raise; try `thinking: minimal` and `effort: low` for latency.
 
 ### 2026-10-23 — MOCK MODEL (plumbing check), no speaker names
 
