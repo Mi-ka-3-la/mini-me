@@ -22,6 +22,10 @@ Reading the numbers:
 
 ## Runs
 
+### 2026-10-23 — answer prompt only (ADR-24): no eval run
+
+The change touches only the answer prompt (mode `answer`). The eval scores watch and summary calls and never runs answer mode, so a run would measure nothing about this change. It is covered by unit and end-to-end tests of the schema, clean-up and rendering. The real check is Mihaela reviewing answers on real questions.
+
 ### 2026-10-23 — after ADR-21 (topics, Important markers, answered questions): watch and summary claude-sonnet-5-5, medium, adaptive, no speaker names
 
 GitHub Actions, Eval #6, commit c69d6e4, 1 run per fixture.

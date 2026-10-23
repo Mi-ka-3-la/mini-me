@@ -69,7 +69,12 @@ const sessionSchema = z.object({
             question: z.string(),
             trap: z.string(),
             headline: z.string(),
-            steps: z.array(z.object({ label: z.string(), detail: z.string() })),
+            steps: z.array(
+              z.object({ label: z.string(), detail: z.string(), why: z.string().optional() }),
+            ),
+            explain: z
+              .array(z.object({ label: z.string(), title: z.string(), body: z.string() }))
+              .optional(),
           })
           .optional(),
       }),

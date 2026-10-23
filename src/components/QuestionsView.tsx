@@ -26,10 +26,23 @@ function AnswerPlan({ q }: { q: Question }) {
             <span className="step-body">
               <b>{st.label}</b>
               <span>{st.detail}</span>
+              {st.why && <span className="step-why">Why: {st.why}</span>}
             </span>
           </li>
         ))}
       </ol>
+      {a.explain && a.explain.length > 0 && (
+        <details className="explain">
+          <summary>Understand it</summary>
+          {a.explain.map((x, i) => (
+            <section key={i} className="explain-section">
+              <div className="explain-label">{x.label}</div>
+              <h4>{x.title}</h4>
+              <p>{x.body}</p>
+            </section>
+          ))}
+        </details>
+      )}
     </div>
   );
 }

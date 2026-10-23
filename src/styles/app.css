@@ -941,3 +941,47 @@ details.asked-section summary {
 .answered-quote b {
   color: var(--ok);
 }
+
+/* Added (ADR-24): the why of each step, and "Understand it" under the answer. */
+.step-body .step-why {
+  font-size: 12px;
+  font-style: italic;
+  margin-top: 2px;
+}
+.explain {
+  margin-top: 6px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.explain summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--accent);
+  font-size: 13.5px;
+}
+.explain-section {
+  margin: 12px 0 4px;
+  padding-left: 10px;
+  border-left: 2px solid var(--accent-soft);
+  max-width: 70ch;
+}
+.explain-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.explain-label::before {
+  content: '— ';
+}
+.explain-section h4 {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 2px 0 4px;
+}
+.explain-section p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}

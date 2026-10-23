@@ -30,7 +30,9 @@ export type Answer = {
   question: string;
   trap: string;
   headline: string;
-  steps: { label: string; detail: string }[];
+  steps: { label: string; detail: string; why?: string }[];
+  /** "Understand it" sections (ADR-24); empty for answers saved before it */
+  explain?: { label: string; title: string; body: string }[];
 };
 
 /** A question someone asked in the meeting (ADR-20). Answered only when the listener taps. */

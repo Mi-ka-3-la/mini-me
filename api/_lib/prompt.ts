@@ -164,7 +164,7 @@ ${transcriptBlocks(req, 'NEW TRANSCRIPT (since the previous summary)')}`;
  */
 export function buildAnswerPrompt(req: AnalyzeRequest): string {
   const q = req.question ?? { quote: '', question: '' };
-  return `Someone in a live conversation has just asked a question that the listener may need to answer now. Help the listener answer it. They will glance at your answer while they speak, so it must be readable in a few seconds: short labels, no paragraphs.
+  return `Someone in a live conversation has just asked a question that the listener may need to answer now. Help the listener answer it. The answer has two layers. The first (question, trap, headline, steps) is glanced at while they speak, so it must be readable in a few seconds: short labels, no paragraphs. The second (explain) is read when they have a moment, to understand what the question is really about.
 Return JSON that matches the provided schema.
 
 ${header(req)}
@@ -180,7 +180,14 @@ FIELDS
 - question: the question restated as one short, clear sentence. If it was asked in a confusing way, say what is really being asked.
 - trap: if the question hides a trap (a false choice, a loaded or wrong assumption, a "there is no right answer" setup, a test of honesty, judgment or priorities, a request to criticise someone), name it in one short sentence and say how to step around it. Otherwise an empty string.
 - headline: the core of the answer, at most 12 words.
-- steps: 3 to 5 steps that build the answer or the action plan, in the order to say them. label = 2 to 5 words. detail = at most 15 words, concrete, and drawn from the listener's background where it fits.
+- steps: 3 to 5 steps that build the answer or the action plan, in the order to say them. label = 2 to 5 words. detail = at most 15 words, concrete, and drawn from the listener's background where it fits. why = one short sentence: why this step belongs in the answer (what it proves to the asker, or what goes wrong without it).
+
+- explain: the listener reads this part to understand the question, not to say it. 3 or 4 short sections, in this order, skipping one that does not apply:
+  1. what it is: the concept the question turns on. Start from something the listener already knows, then name the one difference. Define every technical term the first time it appears. If the concept has an edge (X is Y, X is not Z), state it.
+  2. what they are testing: why someone asks this question, and what a strong answer shows.
+  3. common confusion: the confusion a smart person would likely have here, in plain words, then say it is not so, and give the real reason in the next sentence.
+  4. where you fit: map the concept onto the listener's background, concretely. Use only what the background or the conversation says. If the background is empty, say what kind of experience would fit.
+  For each section: label = the section name above, in the meeting language, uppercase. title = the section's claim as a full statement, 3 to 8 words. body = 2 to 4 short sentences, one idea only. Every "because" has its cause in the next sentence. If something is a convention with no internal logic, say so. If it is a simplification, say where it breaks. No filler, no praise, no announcing what comes next.
 
 RECENT CONVERSATION, for context:
 ${[req.transcript, req.newTranscript].filter((x) => x.trim()).join('\n') || '(none)'}`;

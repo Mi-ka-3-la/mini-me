@@ -67,7 +67,10 @@ export function notesMarkdown(
       if (q.answer) {
         if (q.answer.trap) rows.push(`  Trap: ${q.answer.trap}`);
         rows.push(`  Answer: ${q.answer.headline}`);
-        q.answer.steps.forEach((st, i) => rows.push(`  ${i + 1}. ${st.label} — ${st.detail}`));
+        q.answer.steps.forEach((st, i) =>
+          rows.push(`  ${i + 1}. ${st.label} — ${st.detail}${st.why ? ` (why: ${st.why})` : ''}`),
+        );
+        (q.answer.explain ?? []).forEach((x) => rows.push(`  ${x.label}: ${x.title}. ${x.body}`));
       }
       return rows.join('\n');
     });

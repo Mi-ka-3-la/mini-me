@@ -79,9 +79,17 @@ describe('answer call', () => {
     trap: 'It assumes you must choose between debt and delivery.',
     headline: 'Make debt visible, then pay it down inside the flow',
     steps: [
-      { label: 'Map the debt', detail: 'List hotspots by incident count and change frequency' },
-      { label: 'Agree a budget', detail: '15–20% of each sprint, owned by the team' },
-      { label: 'Fix where you touch', detail: 'Boy-scout rule on every story' },
+      {
+        label: 'Map the debt',
+        detail: 'List hotspots by incident count and change frequency',
+        why: ' Makes it rankable. ',
+      },
+      { label: 'Agree a budget', detail: '15–20% of each sprint, owned by the team', why: '' },
+      { label: 'Fix where you touch', detail: 'Boy-scout rule on every story', why: '' },
+    ],
+    explain: [
+      { label: 'what it is', title: ' Debt is deferred work ', body: 'It costs more later.' },
+      { label: 'empty', title: '', body: 'dropped' },
     ],
   };
 
@@ -101,17 +109,24 @@ describe('answer call', () => {
     expect(p).toContain('never invent experience');
     expect(p).toContain('- trap: if the question hides a trap');
     expect(p).toContain('steps: 3 to 5 steps');
+    expect(p).toContain('- explain:');
+    expect(p).toContain('common confusion');
   });
 
   it('cleanAnswer trims and caps steps at 6', () => {
     const many = {
       ...answer,
-      steps: Array.from({ length: 9 }, (_, i) => ({ label: ` s${i} `, detail: 'd' })),
+      steps: Array.from({ length: 9 }, (_, i) => ({ label: ` s${i} `, detail: 'd', why: '' })),
     };
     const c = cleanAnswer(many);
     expect(c.question).toBe('How would you reduce technical debt without stopping delivery?');
     expect(c.steps).toHaveLength(6);
     expect(c.steps[0]?.label).toBe('s0');
+    const e = cleanAnswer(answer);
+    expect(e.steps[0]?.why).toBe('Makes it rankable.');
+    expect(e.explain).toEqual([
+      { label: 'WHAT IT IS', title: 'Debt is deferred work', body: 'It costs more later.' },
+    ]);
   });
 
   describe('handler', () => {
@@ -160,6 +175,7 @@ describe('answer call', () => {
         'trap',
         'headline',
         'steps',
+        'explain',
       ]);
     });
 

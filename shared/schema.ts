@@ -61,7 +61,19 @@ export const watchModelOutputSchema = z.object({
   answered: z.array(z.object({ id: z.string(), quote: z.string() })).default([]),
 });
 
-export const answerStepSchema = z.object({ label: z.string(), detail: z.string() });
+export const answerStepSchema = z.object({
+  label: z.string(),
+  detail: z.string(),
+  /** why this step belongs in the answer (ADR-24) */
+  why: z.string().default(''),
+});
+
+/** One short teaching section under "Understand it" (ADR-24). */
+export const explainSectionSchema = z.object({
+  label: z.string(),
+  title: z.string(),
+  body: z.string(),
+});
 
 /** What the model returns for an answer call (ADR-20). */
 export const answerOutputSchema = z.object({
@@ -69,6 +81,7 @@ export const answerOutputSchema = z.object({
   trap: z.string(),
   headline: z.string(),
   steps: z.array(answerStepSchema),
+  explain: z.array(explainSectionSchema).default([]),
 });
 
 /** What the model returns for a summary call (ADR-19). */
@@ -242,7 +255,7 @@ export const answerResponseSchema = z.object({ answer: answerOutputSchema });
 export const ANSWER_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['question', 'trap', 'headline', 'steps'],
+  required: ['question', 'trap', 'headline', 'steps', 'explain'],
   properties: {
     question: { type: 'string' },
     trap: { type: 'string' },
@@ -252,8 +265,25 @@ export const ANSWER_JSON_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['label', 'detail'],
-        properties: { label: { type: 'string' }, detail: { type: 'string' } },
+        required: ['label', 'detail', 'why'],
+        properties: {
+          label: { type: 'string' },
+          detail: { type: 'string' },
+          why: { type: 'string' },
+        },
+      },
+    },
+    explain: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['label', 'title', 'body'],
+        properties: {
+          label: { type: 'string' },
+          title: { type: 'string' },
+          body: { type: 'string' },
+        },
       },
     },
   },
