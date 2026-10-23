@@ -39,6 +39,8 @@ The model receives the definitions below. Examples are given in English; the mod
 
 ## 3. Prompt template
 
+> Since ADR-19 there are two prompts, built in `api/_lib/prompt.ts`: **3a watch** (changes to the watch list only, with the replace-the-weakest and already-evidenced rules) and **3b summary** (the summary only). The template below is the original single prompt; its taxonomy and rules carry over unchanged. The code is the reference for the exact wording.
+
 `api/_lib/prompt.ts` builds the user message below. There is a short system prompt (§4). Values in `{{ }}` are filled by the server.
 
 ```
@@ -157,11 +159,12 @@ Apply these after the model answers, before returning to the client:
 
 Create `tests/fixtures/meetings/` with 4 short transcripts (5–8 minutes each), 2 in English and 2 in Romanian. Each has a hand-written `expected.json` listing the flags a good analyst would raise. Plant at least 3 traps, 3 logic errors and 2 open questions per transcript, plus 2 "decoy" statements that look suspicious but are fine.
 
-`npm run eval` calls `/api/analyze` on each fixture, in 3 chunks to simulate the live flow, and reports:
+`npm run eval` runs each fixture in 6 chunks of about a minute, with a watch call after each chunk and a summary call after chunks 3 and 6 (ADR-19), and reports:
 - **recall**: how many planted items were flagged (match by quote overlap);
 - **precision**: how many flags match a planted item;
 - **decoy hits**: how many decoys were flagged (should be 0);
-- **stability**: share of flag ids kept between chunk 2 and chunk 3.
+- **stability**: share of flag ids kept between chunk 5 and chunk 6;
+- **latency** of each call type, and an **estimated cost per hour** of meeting.
 
 `expected.json` per fixture:
 ```json

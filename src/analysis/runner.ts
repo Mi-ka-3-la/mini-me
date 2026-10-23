@@ -1,10 +1,10 @@
 import { apiFetch } from '../lib/api';
 import { useAuth } from '../store/auth';
-import { useSession } from '../store/session';
-import { buildAnalyzeRequest } from './buildRequest';
+import { useSession, type AnalysisMode } from '../store/session';
+import { buildSummaryRequest, buildWatchRequest } from './buildRequest';
 import { callAnalyze } from './client';
 import { mergeFlags } from './mergeFlags';
-import { backoffMs, countWords, decide } from './scheduler';
+import { backoffMs, countWords, decide, decideSummary } from './scheduler';
 
 const TICK_MS = 2000;
 
@@ -14,7 +14,7 @@ const TICK_MS = 2000;
  */
 export class AnalysisRunner {
   private interval: ReturnType<typeof setInterval> | null = null;
-  private ctl: AbortController | null = null;
+  private ctls = new Set<AbortController>();
   private unsubs: (() => void)[] = [];
 
   start(): void {
@@ -54,8 +54,8 @@ export class AnalysisRunner {
   }
 
   abort(): void {
-    this.ctl?.abort();
-    this.ctl = null;
+    for (const c of this.ctls) c.abort();
+    this.ctls.clear();
   }
 
   requestNow(): void {
@@ -78,62 +78,80 @@ export class AnalysisRunner {
     if (st.pendingResume) return;
     const auth = useAuth.getState();
     const s = st.session;
-    const fresh = s.lines.slice(s.analyzedUpToLineIndex);
-    const newWords = countWords(fresh.map((l) => l.text).join(' '));
-    const firstFresh = fresh[0];
-    const since = s.lastAnalysisAt ?? (firstFresh ? s.startedAt + firstFresh.t : now);
-    const d = decide({
-      running: st.analysis.running,
-      newWords,
-      sinceLastMs: now - since,
+    const canCall =
+      !!auth.passcode &&
+      !auth.rejected &&
+      (typeof navigator === 'undefined' || navigator.onLine !== false);
+    const progress = (upTo: number, lastAt: number | null) => {
+      const fresh = s.lines.slice(upTo);
+      const first = fresh[0];
+      return {
+        newWords: countWords(fresh.map((l) => l.text).join(' ')),
+        sinceLastMs: now - (lastAt ?? (first ? s.startedAt + first.t : now)),
+      };
+    };
+    const shared = {
       manual: st.analysis.manualRequested,
       callsUsed: s.analysisCalls,
       maxCalls: st.analysis.maxCalls,
       retryAt: st.analysis.retryAt,
       now,
-      canCall:
-        !!auth.passcode &&
-        !auth.rejected &&
-        (typeof navigator === 'undefined' || navigator.onLine !== false),
+      canCall,
+    };
+    const watch = decide({
+      ...shared,
+      running: st.analysis.running,
+      ...progress(s.analyzedUpToLineIndex, s.lastAnalysisAt),
     });
-    if (st.analysis.manualRequested && !d.run && d.reason !== 'running') {
+    const summary = decideSummary({
+      ...shared,
+      running: st.analysis.summaryRunning,
+      noSummaryYet: s.summary === null,
+      ...progress(s.summaryUpToLineIndex, s.lastSummaryAt),
+    });
+    if (st.analysis.manualRequested && !watch.run && !summary.run) {
       st.setAnalysis({ manualRequested: false });
     }
-    if (d.run) void this.run();
+    // Decide both before starting either: starting a call clears the manual request.
+    if (watch.run) void this.run('watch');
+    if (summary.run) void this.run('summary');
   }
 
-  private async run(): Promise<void> {
+  private async run(mode: AnalysisMode): Promise<void> {
     const store = useSession.getState();
     const passcode = useAuth.getState().passcode;
-    if (!passcode || store.analysis.running) return;
+    const busy = mode === 'watch' ? store.analysis.running : store.analysis.summaryRunning;
+    if (!passcode || busy) return;
     const s = store.session;
-    const prevIndex = s.analyzedUpToLineIndex;
-    const body = buildAnalyzeRequest(s);
-    store.beginAnalysis(s.lines.length);
+    const prevIndex = mode === 'watch' ? s.analyzedUpToLineIndex : s.summaryUpToLineIndex;
+    const body = mode === 'watch' ? buildWatchRequest(s) : buildSummaryRequest(s);
+    store.beginAnalysis(mode, s.lines.length);
     const ctl = new AbortController();
-    this.ctl = ctl;
+    this.ctls.add(ctl);
     const res = await callAnalyze(body, passcode, ctl.signal);
-    if (this.ctl === ctl) this.ctl = null;
+    this.ctls.delete(ctl);
     const now = Date.now();
     const cur = useSession.getState();
     if (res.ok) {
-      const { flags, newIds } = mergeFlags(cur.session.flags, res.data.flags, now);
-      cur.applyAnalysis({
-        sessionId: s.id,
-        upToLineIndex: s.lines.length,
-        summary: { tldr: res.data.tldr, topics: res.data.topics },
-        flags,
-        newFlagIds: newIds,
-      });
+      if ('flags' in res.data) {
+        const { flags, newIds } = mergeFlags(cur.session.flags, res.data.flags, now);
+        cur.applyWatch({ sessionId: s.id, flags, newFlagIds: newIds });
+      } else {
+        cur.applySummary({
+          sessionId: s.id,
+          summary: { tldr: res.data.tldr, topics: res.data.topics },
+        });
+      }
       return;
     }
     if (res.error.code === 'aborted') {
-      cur.failAnalysis({ sessionId: s.id, prevIndex, error: null, retryAt: 0 });
+      cur.failAnalysis({ mode, sessionId: s.id, prevIndex, error: null, retryAt: 0 });
       return;
     }
     if (res.error.code === 'unauthorized') useAuth.getState().markRejected();
     const wait = backoffMs(cur.analysis.consecutiveErrors + 1, res.error.retryAfterSec);
     cur.failAnalysis({
+      mode,
       sessionId: s.id,
       prevIndex,
       error: { code: res.error.code, message: res.error.message },

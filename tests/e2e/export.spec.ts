@@ -11,7 +11,7 @@ test('copy notes puts Markdown on the clipboard, transcript optional', async ({
   await page.route('**/api/analyze', (route) => route.fulfill({ json: OUTPUT }));
   await unlock(page);
   await paste(page, LONG);
-  await expect(page.getByTestId('call-counter')).toHaveText('1/150 analyses');
+  await expect(page.getByTestId('call-counter')).toHaveText('2/150 analyses');
   await page.getByRole('button', { name: 'Copy notes' }).click();
   await page.getByRole('button', { name: 'Copy', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Copied as Markdown' })).toBeVisible();

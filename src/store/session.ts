@@ -19,8 +19,13 @@ type Runtime = {
 
 export type AnalysisError = { code: string; message: string };
 
+export type AnalysisMode = 'watch' | 'summary';
+
 export type AnalysisRuntime = {
+  /** a watch call is running */
   running: boolean;
+  /** a summary call is running */
+  summaryRunning: boolean;
   error: AnalysisError | null;
   /** epoch ms of the last successful update */
   updatedAt: number | null;
@@ -52,22 +57,19 @@ type Actions = {
   clearNewFlags: () => void;
   markFlagsSeen: () => void;
   /** A call starts: counts it and remembers which lines it covers. */
-  beginAnalysis: (upToLineIndex: number) => void;
+  beginAnalysis: (mode: AnalysisMode, upToLineIndex: number) => void;
   /** A call failed: the lines it covered count as new again, and automatic calls wait. */
   failAnalysis: (r: {
+    mode: AnalysisMode;
     sessionId: string;
     prevIndex: number;
     error: AnalysisError | null;
     retryAt: number;
   }) => void;
-  /** Applies a successful result, if it belongs to the current session. */
-  applyAnalysis: (r: {
-    sessionId: string;
-    upToLineIndex: number;
-    summary: Summary;
-    flags: ClientFlag[];
-    newFlagIds: string[];
-  }) => void;
+  /** Applies a watch result, if it belongs to the current session. */
+  applyWatch: (r: { sessionId: string; flags: ClientFlag[]; newFlagIds: string[] }) => void;
+  /** Applies a summary result, if it belongs to the current session. */
+  applySummary: (r: { sessionId: string; summary: Summary }) => void;
 };
 
 export type SessionState = { session: Session } & Runtime & Actions;
@@ -90,6 +92,8 @@ export function emptySession(language: Language = lastLanguage(), now = Date.now
     analyzedUpToLineIndex: 0,
     analysisCalls: 0,
     lastAnalysisAt: null,
+    summaryUpToLineIndex: 0,
+    lastSummaryAt: null,
   };
 }
 
@@ -101,6 +105,7 @@ export const DEFAULT_MAX_CALLS = 150;
 
 const freshAnalysis = (maxCalls = DEFAULT_MAX_CALLS): AnalysisRuntime => ({
   running: false,
+  summaryRunning: false,
   error: null,
   updatedAt: null,
   maxCalls,
@@ -182,24 +187,35 @@ export const useSession = create<SessionState>((set, get) => ({
     })),
   clearNewFlags: () => set((st) => ({ analysis: { ...st.analysis, newFlagIds: [] } })),
   markFlagsSeen: () => set((st) => ({ analysis: { ...st.analysis, unseenFlags: 0 } })),
-  beginAnalysis: (upToLineIndex) =>
+  beginAnalysis: (mode, upToLineIndex) =>
     set((st) => ({
       session: {
         ...st.session,
         analysisCalls: st.session.analysisCalls + 1,
-        lastAnalysisAt: Date.now(),
-        analyzedUpToLineIndex: upToLineIndex,
+        ...(mode === 'watch'
+          ? { lastAnalysisAt: Date.now(), analyzedUpToLineIndex: upToLineIndex }
+          : { lastSummaryAt: Date.now(), summaryUpToLineIndex: upToLineIndex }),
       },
-      analysis: { ...st.analysis, running: true, manualRequested: false },
+      analysis: {
+        ...st.analysis,
+        ...(mode === 'watch' ? { running: true } : { summaryRunning: true }),
+        manualRequested: false,
+      },
     })),
-  failAnalysis: ({ sessionId, prevIndex, error, retryAt }) =>
+  failAnalysis: ({ mode, sessionId, prevIndex, error, retryAt }) =>
     set((st) => {
-      if (st.session.id !== sessionId) return { analysis: { ...st.analysis, running: false } };
+      const flag = mode === 'watch' ? { running: false } : { summaryRunning: false };
+      if (st.session.id !== sessionId) return { analysis: { ...st.analysis, ...flag } };
       return {
-        session: { ...st.session, analyzedUpToLineIndex: prevIndex },
+        session: {
+          ...st.session,
+          ...(mode === 'watch'
+            ? { analyzedUpToLineIndex: prevIndex }
+            : { summaryUpToLineIndex: prevIndex }),
+        },
         analysis: {
           ...st.analysis,
-          running: false,
+          ...flag,
           error,
           retryAt,
           consecutiveErrors: error
@@ -208,11 +224,11 @@ export const useSession = create<SessionState>((set, get) => ({
         },
       };
     }),
-  applyAnalysis: ({ sessionId, summary, flags, newFlagIds }) =>
+  applyWatch: ({ sessionId, flags, newFlagIds }) =>
     set((st) => {
       if (st.session.id !== sessionId) return {};
       return {
-        session: { ...st.session, summary, flags },
+        session: { ...st.session, flags },
         analysis: {
           ...st.analysis,
           running: false,
@@ -222,6 +238,21 @@ export const useSession = create<SessionState>((set, get) => ({
           retryAt: 0,
           newFlagIds,
           unseenFlags: st.analysis.unseenFlags + newFlagIds.length,
+        },
+      };
+    }),
+  applySummary: ({ sessionId, summary }) =>
+    set((st) => {
+      if (st.session.id !== sessionId) return {};
+      return {
+        session: { ...st.session, summary },
+        analysis: {
+          ...st.analysis,
+          summaryRunning: false,
+          error: null,
+          updatedAt: Date.now(),
+          consecutiveErrors: 0,
+          retryAt: 0,
         },
       };
     }),

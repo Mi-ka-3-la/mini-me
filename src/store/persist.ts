@@ -51,6 +51,8 @@ const sessionSchema = z.object({
   analyzedUpToLineIndex: z.number(),
   analysisCalls: z.number(),
   lastAnalysisAt: z.number().nullable(),
+  summaryUpToLineIndex: z.number().default(0),
+  lastSummaryAt: z.number().nullable().default(null),
 });
 
 const STORED_VERSION = 1;

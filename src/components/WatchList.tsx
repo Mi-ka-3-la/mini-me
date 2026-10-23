@@ -94,8 +94,9 @@ export function WatchList({ hidden }: { hidden: boolean }) {
                 : 'Analysis is off on this device. Open Menu → Enter passcode to get the watch list.'}
           </div>
         ) : (
-          shown.map((f) => (
+          shown.map((f, i) => (
             <FlagCard
+              featured={i === 0 && filter === 'all' && f.status !== 'pinned'}
               key={f.id}
               flag={f}
               isNew={newIds.includes(f.id)}

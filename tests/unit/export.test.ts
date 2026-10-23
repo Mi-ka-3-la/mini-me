@@ -81,6 +81,8 @@ const s: Session = {
   analyzedUpToLineIndex: 2,
   analysisCalls: 1,
   lastAnalysisAt: 1,
+  summaryUpToLineIndex: 2,
+  lastSummaryAt: 1,
 };
 
 describe('notesMarkdown', () => {

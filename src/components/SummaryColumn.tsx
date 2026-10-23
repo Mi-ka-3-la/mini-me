@@ -21,7 +21,7 @@ function Items({ items, tag, label }: { items: string[]; tag?: string; label?: s
  */
 export function SummaryColumn({ hidden }: { hidden: boolean }) {
   const summary = useSession((s) => s.session.summary);
-  const running = useSession((s) => s.analysis.running);
+  const running = useSession((s) => s.analysis.summaryRunning);
   const lang = useSession((s) => s.session.language);
   const canCall = useAuth((s) => !!s.passcode && !s.rejected);
   const empty = !summary || (!summary.tldr && summary.topics.length === 0);

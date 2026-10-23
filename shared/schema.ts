@@ -30,15 +30,34 @@ export const modelFlagSchema = z.object({
   who: z.string(),
 });
 
-/** What the model must return, and what /api/analyze returns. */
+/** Full analysis state kept by the browser. */
 export const analysisOutputSchema = z.object({
   tldr: z.string(),
   topics: z.array(topicSchema),
   flags: z.array(modelFlagSchema),
 });
 
-/** POST /api/analyze body (docs/02 §6). */
+const newFlagSchema = modelFlagSchema.omit({ id: true });
+
+/** What the model returns for a watch call (ADR-19): only the changes to the watch list. */
+export const watchModelOutputSchema = z.object({
+  add: z.array(newFlagSchema),
+  update: z.array(modelFlagSchema),
+  drop: z.array(z.string()),
+});
+
+/** What the model returns for a summary call (ADR-19). */
+export const summaryOutputSchema = z.object({
+  tldr: z.string(),
+  topics: z.array(topicSchema),
+});
+
+/** What /api/analyze returns for a watch call: the complete updated watch list. */
+export const watchResponseSchema = z.object({ flags: z.array(modelFlagSchema) });
+
+/** POST /api/analyze body (docs/02 §6, ADR-19). */
 export const analyzeRequestSchema = z.object({
+  mode: z.enum(['watch', 'summary']),
   language: z.enum(['en-US', 'ro-RO']),
   context: str(MAX_CONTEXT).default(''),
   speakers: z.record(z.string().max(80), z.string().max(80)).default({}),
@@ -50,26 +69,66 @@ export const analyzeRequestSchema = z.object({
     })
     .nullable()
     .default(null),
+  pinnedIds: z.array(str(40)).max(40).default([]),
   dismissedQuotes: z.array(str(600)).max(300).default([]),
   askedFlags: z
     .array(z.object({ title: str(400), quote: str(600) }))
     .max(300)
     .default([]),
+  /** Older part of the window: context only. */
   transcript: str(MAX_TRANSCRIPT_CHARS),
+  /** Lines since the last call of this mode: where new flags are looked for. */
+  newTranscript: str(MAX_TRANSCRIPT_CHARS).default(''),
   transcriptTrimmed: z.boolean().default(false),
 });
 
 export type AnalyzeRequest = z.infer<typeof analyzeRequestSchema>;
 export type AnalyzeRequestInput = z.input<typeof analyzeRequestSchema>;
 
+const FLAG_PROPS = {
+  type: { type: 'string', enum: ['trap', 'logic', 'question'] },
+  title: { type: 'string' },
+  quote: { type: 'string' },
+  why: { type: 'string' },
+  ask: { type: 'string' },
+  who: { type: 'string' },
+} as const;
+
 /**
- * JSON Schema sent as output_config.format (docs/04 §5, ADR-10).
+ * JSON Schemas sent as output_config.format (docs/04 §5, ADR-10, ADR-19).
  * JSON outputs need additionalProperties:false and do not accept maxItems.
  */
-export const OUTPUT_JSON_SCHEMA = {
+export const WATCH_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['tldr', 'topics', 'flags'],
+  required: ['add', 'update', 'drop'],
+  properties: {
+    add: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['type', 'title', 'quote', 'why', 'ask', 'who'],
+        properties: FLAG_PROPS,
+      },
+    },
+    update: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'type', 'title', 'quote', 'why', 'ask', 'who'],
+        properties: { id: { type: 'string' }, ...FLAG_PROPS },
+      },
+    },
+    drop: { type: 'array', items: { type: 'string' } },
+  },
+} as const;
+
+export const SUMMARY_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['tldr', 'topics'],
   properties: {
     tldr: { type: 'string' },
     topics: {
@@ -84,24 +143,6 @@ export const OUTPUT_JSON_SCHEMA = {
           decisions: { type: 'array', items: { type: 'string' } },
           actions: { type: 'array', items: { type: 'string' } },
           open: { type: 'array', items: { type: 'string' } },
-        },
-      },
-    },
-    flags: {
-      type: 'array',
-      description: 'At most 12 items.',
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['id', 'type', 'title', 'quote', 'why', 'ask', 'who'],
-        properties: {
-          id: { type: 'string' },
-          type: { type: 'string', enum: ['trap', 'logic', 'question'] },
-          title: { type: 'string' },
-          quote: { type: 'string' },
-          why: { type: 'string' },
-          ask: { type: 'string' },
-          who: { type: 'string' },
         },
       },
     },

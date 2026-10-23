@@ -21,7 +21,7 @@ test('offline shows a banner, pauses analysis, and resumes when back online', as
   expect(calls).toBe(0);
   await context.setOffline(false);
   await expect(page.getByRole('alert')).toHaveCount(0);
-  await expect(page.getByTestId('call-counter')).toHaveText('1/150 analyses');
+  await expect(page.getByTestId('call-counter')).toHaveText('2/150 analyses');
 });
 
 test('server errors map to readable messages and keep the screen', async ({ page }) => {
@@ -54,7 +54,8 @@ test('server errors map to readable messages and keep the screen', async ({ page
   ];
   let i = 0;
   await page.route('**/api/analyze', (route) => {
-    const e = errors[i++]!;
+    // Each Analyze now sends a watch call and a summary call; both get the same error.
+    const e = errors[Math.floor(i++ / 2)]!;
     return route.fulfill({ status: e.status, json: e.json, headers: e.headers ?? {} });
   });
   await unlock(page);

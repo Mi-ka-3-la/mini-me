@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { sameQuote, quoteFound, tokens } from '../../shared/normalize.js';
 import { MAX_FLAGS, type AnalyzeRequest } from '../../shared/schema.js';
-import type { AnalysisOutput, ModelFlag } from '../../shared/types.js';
+import type { ModelFlag, Topic } from '../../shared/types.js';
 
 const ID_ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789';
 
@@ -14,7 +14,9 @@ export function newFlagId(): string {
 }
 
 export type PostStats = {
-  flagsIn: number;
+  added: number;
+  updated: number;
+  dropped: number;
   flagsOut: number;
   droppedUngrounded: number;
   droppedDismissed: number;
@@ -24,22 +26,42 @@ export type PostStats = {
   idsReassigned: number;
 };
 
+export type WatchModelOutput = {
+  add: Omit<ModelFlag, 'id'>[];
+  update: ModelFlag[];
+  drop: string[];
+};
+
 const clean = (s: string) => s.replace(/\s+/g, ' ').trim();
 
+function cleanFlag<T extends Omit<ModelFlag, 'id'>>(f: T): T {
+  return {
+    ...f,
+    title: clean(f.title),
+    quote: clean(f.quote).replace(/^["“„']+|["”']+$/g, ''),
+    why: clean(f.why),
+    ask: clean(f.ask),
+    who: clean(f.who),
+  };
+}
+
 /**
- * Server-side checks of docs/04 §6, applied after the model answers:
- * stable ids, quote grounding, dismissed and asked filters, de-duplication, the 12-flag cap.
+ * Applies a watch call's changes to the current watch list, then runs the checks of docs/04 §6:
+ * quote grounding, dismissed and asked filters, stable ids (ADR-7), de-duplication and the
+ * 12-flag cap. Pinned flags are never dropped; when over the cap, the oldest unpinned go first.
  */
-export function postprocess(
-  out: AnalysisOutput,
+export function applyWatch(
+  out: WatchModelOutput,
   req: AnalyzeRequest,
   makeId: () => string = newFlagId,
-): { result: AnalysisOutput; stats: PostStats } {
+): { flags: ModelFlag[]; stats: PostStats } {
   const prev = req.previous?.flags ?? [];
-  const prevById = new Map(prev.map((f) => [f.id, f]));
-  const transcriptTokens = tokens(req.transcript);
+  const pinned = new Set(req.pinnedIds);
+  const groundTokens = tokens(`${req.transcript}\n${req.newTranscript}`);
   const stats: PostStats = {
-    flagsIn: out.flags.length,
+    added: 0,
+    updated: 0,
+    dropped: 0,
     flagsOut: 0,
     droppedUngrounded: 0,
     droppedDismissed: 0,
@@ -49,24 +71,41 @@ export function postprocess(
     idsReassigned: 0,
   };
 
-  const kept: ModelFlag[] = [];
-  const usedIds = new Set<string>();
+  const drop = new Set(out.drop.filter((id) => prev.some((p) => p.id === id) && !pinned.has(id)));
+  stats.dropped = drop.size;
 
-  for (const raw of out.flags) {
-    const f: ModelFlag = {
-      id: raw.id.trim(),
+  // Existing flags, with updates applied when the update keeps the same quote.
+  const list: ModelFlag[] = [];
+  const asNew: Omit<ModelFlag, 'id'>[] = [];
+  for (const p of prev) {
+    if (drop.has(p.id)) continue;
+    const u = out.update.find((x) => x.id === p.id);
+    if (u && sameQuote(u.quote, p.quote)) {
+      list.push({ ...cleanFlag(u), id: p.id, quote: p.quote });
+      stats.updated++;
+    } else {
+      list.push(p);
+    }
+  }
+  // An update whose id is unknown or whose quote changed is really a new flag.
+  for (const u of out.update) {
+    const p = prev.find((x) => x.id === u.id);
+    if (!p || !sameQuote(u.quote, p.quote)) {
+      asNew.push(u);
+      if (u.id) stats.idsReassigned++;
+    }
+  }
+
+  for (const raw of [...out.add, ...asNew]) {
+    const f = cleanFlag({
       type: raw.type,
-      title: clean(raw.title),
-      quote: clean(raw.quote).replace(/^["“„']+|["”']+$/g, ''),
-      why: clean(raw.why),
-      ask: clean(raw.ask),
-      who: clean(raw.who),
-    };
-
-    // Grounding: the quote must be in the transcript window, or be a previous flag's quote.
-    const grounded =
-      quoteFound(f.quote, transcriptTokens) || prev.some((p) => sameQuote(p.quote, f.quote));
-    if (!grounded) {
+      title: raw.title,
+      quote: raw.quote,
+      why: raw.why,
+      ask: raw.ask,
+      who: raw.who,
+    });
+    if (!quoteFound(f.quote, groundTokens)) {
       stats.droppedUngrounded++;
       continue;
     }
@@ -78,45 +117,37 @@ export function postprocess(
       stats.droppedAsked++;
       continue;
     }
-
-    // Ids: keep a previous id only when the quote still belongs to that flag.
-    const prevSame = prevById.get(f.id);
-    let id = prevSame && sameQuote(prevSame.quote, f.quote) ? f.id : '';
-    if (!id) {
-      const byQuote = prev.find((p) => !usedIds.has(p.id) && sameQuote(p.quote, f.quote));
-      id = byQuote?.id ?? '';
-    }
-    if (!id || usedIds.has(id)) {
-      if (f.id) stats.idsReassigned++;
-      id = makeId();
-    }
-
-    if (kept.some((k) => sameQuote(k.quote, f.quote) && k.type === f.type)) {
+    if (list.some((k) => sameQuote(k.quote, f.quote))) {
       stats.droppedDuplicate++;
       continue;
     }
-    usedIds.add(id);
-    kept.push({ ...f, id });
+    list.push({ ...f, id: makeId() });
+    stats.added++;
   }
 
-  if (kept.length > MAX_FLAGS) {
-    stats.droppedOverCap = kept.length - MAX_FLAGS;
-    kept.length = MAX_FLAGS;
+  // Cap: remove the oldest unpinned flags first (the list runs oldest → newest).
+  while (list.length > MAX_FLAGS) {
+    const i = list.findIndex((f) => !pinned.has(f.id));
+    if (i < 0) break;
+    list.splice(i, 1);
+    stats.droppedOverCap++;
   }
-  stats.flagsOut = kept.length;
+  stats.flagsOut = list.length;
+  return { flags: list, stats };
+}
 
+export function cleanSummary(out: { tldr: string; topics: Topic[] }): {
+  tldr: string;
+  topics: Topic[];
+} {
   return {
-    result: {
-      tldr: clean(out.tldr),
-      topics: out.topics.map((t) => ({
-        topic: clean(t.topic),
-        points: t.points.map(clean).filter(Boolean),
-        decisions: t.decisions.map(clean).filter(Boolean),
-        actions: t.actions.map(clean).filter(Boolean),
-        open: t.open.map(clean).filter(Boolean),
-      })),
-      flags: kept,
-    },
-    stats,
+    tldr: clean(out.tldr),
+    topics: out.topics.map((t) => ({
+      topic: clean(t.topic),
+      points: t.points.map(clean).filter(Boolean),
+      decisions: t.decisions.map(clean).filter(Boolean),
+      actions: t.actions.map(clean).filter(Boolean),
+      open: t.open.map(clean).filter(Boolean),
+    })),
   };
 }

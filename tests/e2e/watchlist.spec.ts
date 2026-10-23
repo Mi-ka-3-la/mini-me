@@ -35,9 +35,11 @@ test('pin survives, dismiss never returns, mark asked moves to the done section'
     { ...OUTPUT, flags: [C, { ...B, id: 'f-zzzzzzzz' }] },
   ];
   let n = 0;
-  await page.route('**/api/analyze', (route) =>
-    route.fulfill({ json: responses[Math.min(n++, 1)] }),
-  );
+  await page.route('**/api/analyze', (route) => {
+    const mode = (route.request().postDataJSON() as { mode: string }).mode;
+    if (mode === 'summary') return route.fulfill({ json: OUTPUT });
+    return route.fulfill({ json: responses[Math.min(n++, 1)] });
+  });
   await unlock(page);
   await paste(page, LONG);
   const watch = await openColumn(page, 'Watch list', 'Watch list');
@@ -57,7 +59,7 @@ test('pin survives, dismiss never returns, mark asked moves to the done section'
   await openColumn(page, 'Transcript', 'Live transcript');
   await paste(page, 'Dev lead: we resolved the legal question');
   await page.getByRole('button', { name: 'Analyze now' }).click();
-  await expect(page.getByTestId('call-counter')).toHaveText('2/150 analyses');
+  await expect(page.getByTestId('call-counter')).toHaveText('4/150 analyses');
   await openColumn(page, 'Watch list', 'Watch list');
 
   await expect(card('Dependency stated')).toBeVisible(); // pinned, dropped by the model, kept
