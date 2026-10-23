@@ -96,3 +96,27 @@ test('a simulated interview plays line by line and threads topics by colour acro
   await page.getByRole('button', { name: 'Stop simulation' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Simulation:' })).toHaveCount(0);
 });
+
+test('my own pasted transcript plays line by line', async ({ page }) => {
+  await installFakeSpeech(page);
+  await page.route('**/api/analyze', (route) => {
+    const mode = (route.request().postDataJSON() as { mode: string }).mode;
+    return route.fulfill({ json: mode === 'summary' ? SUMMARY : WATCH });
+  });
+  await unlock(page);
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('menuitem', { name: 'Simulate a meeting…' }).click();
+  await page.getByLabel('Conversation').selectOption('own');
+  const startBtn = page.getByRole('button', { name: 'Start simulation' });
+  await expect(startBtn).toBeDisabled();
+  await page
+    .getByLabel('Transcript to play')
+    .fill('Them: How has your week been?\nMe: Busy, but good.');
+  await expect(
+    page.getByText('2 lines, about 1 min at real time.', { exact: false }),
+  ).toBeVisible();
+  await page.getByLabel('Speed').selectOption('4');
+  await startBtn.click();
+  await expect(page.getByRole('status').filter({ hasText: 'Your transcript' })).toBeVisible();
+  await expect(page.getByText('Busy, but good.')).toBeVisible({ timeout: 10_000 });
+});

@@ -45,3 +45,31 @@ describe('simulation', () => {
     expect(useSession.getState().listen).toBe('idle');
   });
 });
+
+describe('own transcript', () => {
+  it('reads Name: text lines without times, splits long turns and times them at speaking pace', async () => {
+    const { parsePasted } = await import('../../src/demo/scripts');
+    const long = Array.from(
+      { length: 4 },
+      (_, i) => `Sentence ${i} has exactly ten words in it, more or less.`,
+    ).join(' ');
+    const lines = parsePasted(`Them: Hi there.\n\nMe: ${long}\nno speaker here`);
+    expect(lines[0]).toEqual({ t: 0, speaker: 'Them', text: 'Hi there.' });
+    const mine = lines.filter((l) => l.speaker === 'Me');
+    expect(mine.length).toBe(2);
+    expect(mine.every((l) => l.text.split(' ').length <= 30)).toBe(true);
+    expect(lines[lines.length - 1]).toMatchObject({ text: 'no speaker here' });
+    expect(lines.every((l, i) => i === 0 || l.t > (lines[i - 1]?.t ?? 0))).toBe(true);
+  });
+
+  it('keeps [mm:ss] times when present and ignores long labels as speakers', async () => {
+    const { parsePasted } = await import('../../src/demo/scripts');
+    expect(parsePasted('[00:05] Ana: Salut.')).toEqual([
+      { t: 5000, speaker: 'Ana', text: 'Salut.' },
+    ]);
+    expect(parsePasted('This is a long sentence: with a colon')[0]).toEqual({
+      t: 0,
+      text: 'This is a long sentence: with a colon',
+    });
+  });
+});

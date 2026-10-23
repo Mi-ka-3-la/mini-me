@@ -22,6 +22,21 @@ Reading the numbers:
 
 ## Runs
 
+### 2026-10-23 — after ADR-21 (topics, Important markers, answered questions): watch and summary claude-sonnet-5-5, medium, adaptive, no speaker names
+
+GitHub Actions, Eval #6, commit c69d6e4, 1 run per fixture.
+
+| Fixture | Run | Recall | Precision | Decoys | Stability | Flags | Slowest watch call |
+|---|---|---|---|---|---|---|---|
+| en-crm-vendor | 1 | 69% | 100% | 0 | 69% | 12 | 6.1 s |
+| en-payroll-golive | 1 | 62% | 92% | 0 | 56% | 12 | 6.8 s |
+| ro-efactura-erp | 1 | 69% | 92% | 0 | 60% | 12 | 14.9 s |
+| ro-portal-clinici | 1 | 58% | 92% | 0 | 64% | 12 | 6.5 s |
+
+Overall: recall 65% (target ≥ 60%), precision 94% (≥ 70%), decoy hits 0 (≤ 1), stability 62%, type agreement 75%. Watch latency p50 5.3 s, p95 6.8 s; summary p50 12.3 s. Cost per hour of meeting: watch $1.13 + summary $0.52. PASS.
+
+The new rules did not cost accuracy: recall went from 59% to 65% and precision stayed in the 90s, with Important markers scored separately. One Romanian watch call took 14.9 s, close to the 15 s limit; one run only, so this may be noise.
+
 ### 2026-10-23 — after the split (ADR-19): watch Sonnet vs watch Haiku
 
 GitHub Actions runs "Eval #4" and "Eval #5", one run per fixture, 6 one-minute chunks per fixture. Summary on Sonnet 5.5 in both. Stability is now measured between chunks 5 and 6, so it is not comparable with the earlier runs.
