@@ -4,7 +4,7 @@ import { useSession, type AnalysisMode } from '../store/session';
 import { buildAnswerRequest, buildSummaryRequest, buildWatchRequest } from './buildRequest';
 import { callAnalyze, errorText } from './client';
 import { mergeFlags } from './mergeFlags';
-import { backoffMs, countWords, decide, decideSummary } from './scheduler';
+import { backoffMs, countWords, decide, decideSummary, looksLikeQuestion } from './scheduler';
 
 const TICK_MS = 2000;
 
@@ -98,9 +98,15 @@ export class AnalysisRunner {
       now,
       canCall,
     };
+    // Questions from others (not the listener) trigger the watch call at once (ADR-23).
+    const isMe = (id?: string) => /^(me|eu)$/i.test((id && s.speakers[id]?.label) || '');
+    const questionPending = s.lines
+      .slice(s.analyzedUpToLineIndex)
+      .some((l) => !isMe(l.speakerId) && looksLikeQuestion(l.text));
     const watch = decide({
       ...shared,
       running: st.analysis.running,
+      questionPending,
       ...progress(s.analyzedUpToLineIndex, s.lastAnalysisAt),
     });
     const summary = decideSummary({
