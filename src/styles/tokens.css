@@ -1,0 +1,58 @@
+/* Design tokens ported from docs/reference/prototype.html. Light by default, dark by system or data-theme. */
+:root {
+  --bg: #f3f4f7;
+  --panel: #ffffff;
+  --ink: #151a26;
+  --muted: #5d6577;
+  --line: #dfe2ea;
+  --accent: #3b4cca;
+  --accent-soft: #e6e9fb;
+  --trap: #b45309;
+  --trap-soft: #fdf1e2;
+  --logic: #be123c;
+  --logic-soft: #fde8ee;
+  --question: #0e6ba8;
+  --question-soft: #e3f1fa;
+  --ok: #15803d;
+  --display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --body: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --radius: 12px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0f121a;
+    --panel: #171b26;
+    --ink: #e7e9f0;
+    --muted: #98a0b3;
+    --line: #2a3040;
+    --accent: #8c99ff;
+    --accent-soft: #252b4a;
+    --trap: #f5a54a;
+    --trap-soft: #33240f;
+    --logic: #ff7a98;
+    --logic-soft: #3a1622;
+    --question: #62b8ef;
+    --question-soft: #112b3b;
+    --ok: #4ade80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #0f121a;
+  --panel: #171b26;
+  --ink: #e7e9f0;
+  --muted: #98a0b3;
+  --line: #2a3040;
+  --accent: #8c99ff;
+  --accent-soft: #252b4a;
+  --trap: #f5a54a;
+  --trap-soft: #33240f;
+  --logic: #ff7a98;
+  --logic-soft: #3a1622;
+  --question: #62b8ef;
+  --question-soft: #112b3b;
+  --ok: #4ade80;
+  color-scheme: dark;
+}
