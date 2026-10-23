@@ -5,8 +5,11 @@ on:
   workflow_dispatch:
     inputs:
       model:
-        description: Model id
+        description: Model id (summary, and watch unless set below)
         default: claude-sonnet-5-5
+      watch_model:
+        description: Model id for the watch call (empty = same as above)
+        default: ''
       effort:
         description: low, medium or high
         default: medium
@@ -39,6 +42,7 @@ jobs:
         run: >
           npm run eval --
           --model "${{ inputs.model }}"
+          ${{ inputs.watch_model != '' && format('--watch-model "{0}"', inputs.watch_model) || '' }}
           --effort "${{ inputs.effort }}"
           --thinking "${{ inputs.thinking }}"
           --runs "${{ inputs.runs }}"
