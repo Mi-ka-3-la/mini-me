@@ -5,6 +5,8 @@ import { NARROW, useMediaQuery } from './lib/useMediaQuery';
 import { Menu } from './components/Menu';
 import { PasscodeGate } from './components/PasscodeGate';
 import { useAuth } from './store/auth';
+import { ResumePrompt } from './components/ResumePrompt';
+import { NewMeetingButton } from './components/NewMeetingButton';
 
 export function App() {
   const narrow = useMediaQuery(NARROW);
@@ -21,6 +23,7 @@ export function App() {
         </h1>
         <span className="status">Ready</span>
         <span className="spacer" />
+        <NewMeetingButton />
         <Menu />
       </header>
       <Tabs active={tab} onChange={setTab} newFlags={0} />
@@ -46,6 +49,7 @@ export function App() {
           </div>
         </Column>
       </main>
+      <ResumePrompt />
     </div>
   );
 }
