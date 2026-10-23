@@ -15,7 +15,8 @@ export function AnalysisControls() {
   return (
     <>
       <span className="counter" title="Analysis calls this meeting" data-testid="call-counter">
-        {calls}/{max} analyses
+        {calls}/{max}
+        <span className="wide-only"> analyses</span>
       </span>
       <button
         className="btn"
@@ -34,9 +35,9 @@ export function AnalysisControls() {
 export function AnalysisStatus() {
   const updatedAt = useSession((s) => s.analysis.updatedAt);
   const running = useSession((s) => s.analysis.running);
-  if (running) return <span className="status">· analyzing…</span>;
+  if (running) return <span className="status wide-only">· analyzing…</span>;
   if (!updatedAt) return null;
-  return <span className="status">· updated {clockTime(updatedAt)}</span>;
+  return <span className="status wide-only">· updated {clockTime(updatedAt)}</span>;
 }
 
 function useSecondsUntil(at: number): number {

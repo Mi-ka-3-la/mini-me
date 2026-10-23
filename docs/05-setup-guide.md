@@ -20,7 +20,7 @@ The API is billed separately from a Claude.ai subscription. Check the current pe
 
 ### 3. Vercel account (hosting)
 1. Sign up at vercel.com with your GitHub account.
-2. **Add New → Project →** import the `meeting-copilot` repository. Keep the default settings, which Claude Code will have configured.
+2. **Add New → Project →** import the `meeting-copilot` repository. Keep the default settings, which Claude Code configured in `vercel.json` (framework Vite, build `npm run build`, output `dist`). The Node version is taken from `package.json`.
 
 ### 4. Environment variables (in Vercel)
 Project → **Settings → Environment Variables**. Add:
@@ -31,6 +31,8 @@ Project → **Settings → Environment Variables**. Add:
 | `APP_PASSCODE` | a long phrase only you know, e.g. 4 random words |
 | `ANALYSIS_MODEL` | `claude-sonnet-5-5` |
 | `MAX_CALLS_PER_SESSION` | `150` |
+| `ANALYSIS_EFFORT` (optional) | `medium`; `low` is faster, `high` deeper |
+| `ANALYSIS_THINKING` (optional) | `adaptive`; `minimal` is faster |
 
 Then **Deployments → Redeploy** so the new values are picked up.
 

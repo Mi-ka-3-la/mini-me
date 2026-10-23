@@ -12,6 +12,10 @@ test('start and stop listening in the chosen language', async ({ page }) => {
   await page.getByRole('button', { name: 'Start listening' }).click();
   await expect(page.getByRole('status')).toHaveText('Listening');
   await expect(page.getByTestId('live-dot')).toHaveClass(/on/);
+  if ((page.viewportSize()?.width ?? 1280) <= 980) {
+    // On tablets the setup collapses to one line while listening.
+    await page.getByRole('button', { name: 'Show setup' }).click();
+  }
   await expect(page.getByLabel('Meeting language')).toBeDisabled();
   expect(
     await page.evaluate(() =>

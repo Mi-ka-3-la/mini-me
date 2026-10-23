@@ -1,6 +1,8 @@
 import { LANGUAGES, type Language } from '../../shared/types';
 import { isWakeLockSupported } from '../audio/wakeLock';
 import { isWebSpeechSupported } from '../audio/webSpeech';
+import { useState } from 'react';
+import { NARROW, useMediaQuery } from '../lib/useMediaQuery';
 import { useSession } from '../store/session';
 
 export const CONTEXT_MAX = 2000;
@@ -13,6 +15,23 @@ export function SetupStrip() {
   const setLanguage = useSession((s) => s.setLanguage);
   const setContext = useSession((s) => s.setContext);
   const active = status === 'listening' || status === 'reconnecting' || status === 'starting';
+  const narrow = useMediaQuery(NARROW);
+  const [expanded, setExpanded] = useState(false);
+  // While listening on a tablet or phone, the setup collapses to one line to leave room for the columns.
+  if (narrow && active && !expanded) {
+    return (
+      <section className="setup compact" aria-label="Meeting setup">
+        <span className="hint">
+          {LANGUAGES.find((l) => l.id === language)?.label}
+          {context.trim() ? ' · context set' : ''}
+        </span>
+        <button className="btn small" onClick={() => setExpanded(true)}>
+          Show setup
+        </button>
+        <span className="reminder">Let participants know this meeting is being transcribed.</span>
+      </section>
+    );
+  }
   return (
     <section className="setup" aria-label="Meeting setup">
       <div className="field">
@@ -43,6 +62,11 @@ export function SetupStrip() {
         />
         <span className="reminder">Let participants know this meeting is being transcribed.</span>
       </div>
+      {narrow && active && (
+        <button className="btn small" onClick={() => setExpanded(false)}>
+          Hide setup
+        </button>
+      )}
       {isWebSpeechSupported() && !isWakeLockSupported() && (
         <span className="hint">
           This browser cannot keep the screen on. Keep it awake yourself.
