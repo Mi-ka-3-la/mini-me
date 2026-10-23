@@ -9,23 +9,43 @@ export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 30_000,
   use: { baseURL: 'http://localhost:5173', launchOptions },
-  webServer: {
-    command: 'npm run dev -- --strictPort',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    env: {
-      APP_PASSCODE: 'test-passcode',
-      MAX_CALLS_PER_SESSION: '150',
-      RATE_LIMIT_PER_MIN: '1000',
+  webServer: [
+    {
+      command: 'npm run dev -- --strictPort',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      env: {
+        APP_PASSCODE: 'test-passcode',
+        MAX_CALLS_PER_SESSION: '150',
+        RATE_LIMIT_PER_MIN: '1000',
+      },
     },
-  },
+    {
+      // Production build with the production security headers (no /api: the CSP is what is tested).
+      command: 'npx vite build --logLevel error && npx vite preview --strictPort',
+      url: 'http://localhost:4173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
   projects: [
     {
+      name: 'prod-build',
+      testMatch: /prod/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:4173',
+        viewport: { width: 1280, height: 800 },
+      },
+    },
+    {
       name: 'desktop',
+      testIgnore: /prod/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } },
     },
     {
       name: 'tablet',
+      testIgnore: /prod/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 768, height: 1024 } },
     },
     {
