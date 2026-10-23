@@ -30,6 +30,16 @@ export type WatchModelOutput = {
   add: Omit<ModelFlag, 'id'>[];
   update: ModelFlag[];
   drop: string[];
+  questions?: { quote: string; question: string }[];
+};
+
+export type DetectedQuestion = { id: string; quote: string; question: string };
+
+export type Answer = {
+  question: string;
+  trap: string;
+  headline: string;
+  steps: { label: string; detail: string }[];
 };
 
 const clean = (s: string) => s.replace(/\s+/g, ' ').trim();
@@ -134,6 +144,37 @@ export function applyWatch(
   }
   stats.flagsOut = list.length;
   return { flags: list, stats };
+}
+
+/** New questions from a watch call (ADR-20): grounded in the transcript, not already known. */
+export function applyQuestions(
+  out: WatchModelOutput,
+  req: AnalyzeRequest,
+  makeId: () => string = () => newFlagId().replace(/^f-/, 'q-'),
+): DetectedQuestion[] {
+  const groundTokens = tokens(`${req.transcript}\n${req.newTranscript}`);
+  const result: DetectedQuestion[] = [];
+  for (const q of out.questions ?? []) {
+    const quote = clean(q.quote).replace(/^["“„']+|["”']+$/g, '');
+    const question = clean(q.question);
+    if (!quote || !question || !quoteFound(quote, groundTokens)) continue;
+    if (req.knownQuestions.some((k) => sameQuote(k, quote))) continue;
+    if (result.some((r) => sameQuote(r.quote, quote))) continue;
+    result.push({ id: makeId(), quote, question });
+  }
+  return result.slice(0, 5);
+}
+
+export function cleanAnswer(a: Answer): Answer {
+  return {
+    question: clean(a.question),
+    trap: clean(a.trap),
+    headline: clean(a.headline),
+    steps: a.steps
+      .map((st) => ({ label: clean(st.label), detail: clean(st.detail) }))
+      .filter((st) => st.label)
+      .slice(0, 6),
+  };
 }
 
 export function cleanSummary(out: { tldr: string; topics: Topic[] }): {

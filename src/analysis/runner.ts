@@ -1,8 +1,8 @@
 import { apiFetch } from '../lib/api';
 import { useAuth } from '../store/auth';
 import { useSession, type AnalysisMode } from '../store/session';
-import { buildSummaryRequest, buildWatchRequest } from './buildRequest';
-import { callAnalyze } from './client';
+import { buildAnswerRequest, buildSummaryRequest, buildWatchRequest } from './buildRequest';
+import { callAnalyze, errorText } from './client';
 import { mergeFlags } from './mergeFlags';
 import { backoffMs, countWords, decide, decideSummary } from './scheduler';
 
@@ -136,7 +136,8 @@ export class AnalysisRunner {
       if ('flags' in res.data) {
         const { flags, newIds } = mergeFlags(cur.session.flags, res.data.flags, now);
         cur.applyWatch({ sessionId: s.id, flags, newFlagIds: newIds });
-      } else {
+        cur.addQuestions({ sessionId: s.id, questions: res.data.questions, at: now });
+      } else if ('tldr' in res.data) {
         cur.applySummary({
           sessionId: s.id,
           summary: { tldr: res.data.tldr, topics: res.data.topics },
@@ -161,3 +162,31 @@ export class AnalysisRunner {
 }
 
 export const analysisRunner = new AnalysisRunner();
+
+/** Answers one question when the listener taps "Answer" (ADR-20). Counts as an analysis call. */
+export async function answerQuestion(id: string): Promise<void> {
+  const st = useSession.getState();
+  const passcode = useAuth.getState().passcode;
+  const q = st.session.questions.find((x) => x.id === id);
+  if (!q || !passcode || st.answeringId) return;
+  const sessionId = st.session.id;
+  st.setAnswering(id);
+  useSession.setState((cur) => ({
+    session: { ...cur.session, analysisCalls: cur.session.analysisCalls + 1 },
+  }));
+  const res = await callAnalyze(
+    buildAnswerRequest(st.session, q, st.background),
+    passcode,
+    new AbortController().signal,
+  );
+  const cur = useSession.getState();
+  if (res.ok && 'answer' in res.data) {
+    cur.setAnswer({ sessionId, id, answer: res.data.answer });
+    return;
+  }
+  if (!res.ok && res.error.code === 'unauthorized') useAuth.getState().markRejected();
+  cur.setAnswering(null, {
+    id,
+    message: res.ok ? 'The answer came back malformed. Try again.' : errorText(res.error, 0),
+  });
+}

@@ -4,6 +4,7 @@ export const MAX_FLAGS = 12;
 export const MAX_CONTEXT = 2000;
 export const MAX_TRANSCRIPT_CHARS = 60_000;
 export const MAX_BODY_BYTES = 200 * 1024;
+export const MAX_BACKGROUND = 4000;
 
 const str = (max: number) => z.string().max(max);
 
@@ -39,11 +40,24 @@ export const analysisOutputSchema = z.object({
 
 const newFlagSchema = modelFlagSchema.omit({ id: true });
 
+export const detectedQuestionSchema = z.object({ quote: z.string(), question: z.string() });
+
 /** What the model returns for a watch call (ADR-19): only the changes to the watch list. */
 export const watchModelOutputSchema = z.object({
   add: z.array(newFlagSchema),
   update: z.array(modelFlagSchema),
   drop: z.array(z.string()),
+  questions: z.array(detectedQuestionSchema).default([]),
+});
+
+export const answerStepSchema = z.object({ label: z.string(), detail: z.string() });
+
+/** What the model returns for an answer call (ADR-20). */
+export const answerOutputSchema = z.object({
+  question: z.string(),
+  trap: z.string(),
+  headline: z.string(),
+  steps: z.array(answerStepSchema),
 });
 
 /** What the model returns for a summary call (ADR-19). */
@@ -52,12 +66,17 @@ export const summaryOutputSchema = z.object({
   topics: z.array(topicSchema),
 });
 
-/** What /api/analyze returns for a watch call: the complete updated watch list. */
-export const watchResponseSchema = z.object({ flags: z.array(modelFlagSchema) });
+/** What /api/analyze returns for a watch call: the complete updated watch list, plus new questions. */
+export const watchResponseSchema = z.object({
+  flags: z.array(modelFlagSchema),
+  questions: z
+    .array(z.object({ id: z.string(), quote: z.string(), question: z.string() }))
+    .default([]),
+});
 
 /** POST /api/analyze body (docs/02 §6, ADR-19). */
 export const analyzeRequestSchema = z.object({
-  mode: z.enum(['watch', 'summary']),
+  mode: z.enum(['watch', 'summary', 'answer']),
   language: z.enum(['en-US', 'ro-RO']),
   context: str(MAX_CONTEXT).default(''),
   speakers: z.record(z.string().max(80), z.string().max(80)).default({}),
@@ -80,6 +99,14 @@ export const analyzeRequestSchema = z.object({
   /** Lines since the last call of this mode: where new flags are looked for. */
   newTranscript: str(MAX_TRANSCRIPT_CHARS).default(''),
   transcriptTrimmed: z.boolean().default(false),
+  /** Questions already detected (quotes), so the watch call does not report them again. */
+  knownQuestions: z.array(str(600)).max(200).default([]),
+  /** Answer mode: the question to answer, and the listener's background (ADR-20). */
+  question: z
+    .object({ quote: str(600), question: str(600) })
+    .nullable()
+    .default(null),
+  background: str(MAX_BACKGROUND).default(''),
 });
 
 export type AnalyzeRequest = z.infer<typeof analyzeRequestSchema>;
@@ -101,8 +128,17 @@ const FLAG_PROPS = {
 export const WATCH_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['add', 'update', 'drop'],
+  required: ['add', 'update', 'drop', 'questions'],
   properties: {
+    questions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['quote', 'question'],
+        properties: { quote: { type: 'string' }, question: { type: 'string' } },
+      },
+    },
     add: {
       type: 'array',
       items: {
@@ -144,6 +180,29 @@ export const SUMMARY_JSON_SCHEMA = {
           actions: { type: 'array', items: { type: 'string' } },
           open: { type: 'array', items: { type: 'string' } },
         },
+      },
+    },
+  },
+} as const;
+
+/** What /api/analyze returns for an answer call. */
+export const answerResponseSchema = z.object({ answer: answerOutputSchema });
+
+export const ANSWER_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['question', 'trap', 'headline', 'steps'],
+  properties: {
+    question: { type: 'string' },
+    trap: { type: 'string' },
+    headline: { type: 'string' },
+    steps: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['label', 'detail'],
+        properties: { label: { type: 'string' }, detail: { type: 'string' } },
       },
     },
   },

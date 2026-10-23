@@ -99,6 +99,7 @@ RULES
 6. drop: ids of flags that the new talk clearly resolved.
 7. The watch list holds at most 12 flags. If your additions would make it longer, also drop the weakest flags that are not pinned (minor stakes, or a near-repeat of another flag), so the strongest 12 remain. Never drop a pinned flag.
 8. Do not invent facts, owners, dates or numbers.
+9. questions: every real question asked in NEW TRANSCRIPT that expects an answer from someone in the meeting (not rhetorical, not small talk, not a request to repeat, and not already in KNOWN QUESTIONS). quote = the exact words of the question, at most 30 words. question = the same question rewritten as one short, clear sentence, in the meeting language. Questions are separate from flags; a question can be both.
 
 CURRENT WATCH LIST (JSON):
 ${current.length ? JSON.stringify(current) : 'empty'}
@@ -109,7 +110,10 @@ ${dismissed}
 ALREADY ASKED BY THE LISTENER (do not raise again):
 ${asked}
 
-${transcriptBlocks(req, 'NEW TRANSCRIPT (look for flags here)')}`;
+KNOWN QUESTIONS (already reported):
+${req.knownQuestions.length ? req.knownQuestions.map((q) => `- "${q}"`).join('\n') : 'none'}
+
+${transcriptBlocks(req, 'NEW TRANSCRIPT (look for flags and questions here)')}`;
 }
 
 /** Summary call (ADR-19, docs/04 §3b): the running summary only, every few minutes. */
@@ -136,6 +140,34 @@ PREVIOUS SUMMARY (JSON):
 ${previous}
 
 ${transcriptBlocks(req, 'NEW TRANSCRIPT (since the previous summary)')}`;
+}
+
+/**
+ * Answer call (ADR-20): helps the listener answer a question that was just asked, as a short
+ * schematic plan they can read at a glance while speaking.
+ */
+export function buildAnswerPrompt(req: AnalyzeRequest): string {
+  const q = req.question ?? { quote: '', question: '' };
+  return `Someone in a live conversation has just asked a question that the listener may need to answer now. Help the listener answer it. They will glance at your answer while they speak, so it must be readable in a few seconds: short labels, no paragraphs.
+Return JSON that matches the provided schema.
+
+${header(req)}
+
+THE QUESTION, AS ASKED:
+"${q.quote}"
+(clearer: ${q.question || 'n/a'})
+
+THE LISTENER'S BACKGROUND (answer as this person; use only what is written here, never invent experience, employers, numbers or results):
+${req.background.trim() || 'not given — give a strong general answer'}
+
+FIELDS
+- question: the question restated as one short, clear sentence. If it was asked in a confusing way, say what is really being asked.
+- trap: if the question hides a trap (a false choice, a loaded or wrong assumption, a "there is no right answer" setup, a test of honesty, judgment or priorities, a request to criticise someone), name it in one short sentence and say how to step around it. Otherwise an empty string.
+- headline: the core of the answer, at most 12 words.
+- steps: 3 to 5 steps that build the answer or the action plan, in the order to say them. label = 2 to 5 words. detail = at most 15 words, concrete, and drawn from the listener's background where it fits.
+
+RECENT CONVERSATION, for context:
+${[req.transcript, req.newTranscript].filter((x) => x.trim()).join('\n') || '(none)'}`;
 }
 
 /** Appended on the single retry after invalid output. Carries the error shape, never content. */

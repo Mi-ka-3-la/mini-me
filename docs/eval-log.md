@@ -22,6 +22,20 @@ Reading the numbers:
 
 ## Runs
 
+### 2026-10-23 — after the split (ADR-19): watch Sonnet vs watch Haiku
+
+GitHub Actions runs "Eval #4" and "Eval #5", one run per fixture, 6 one-minute chunks per fixture. Summary on Sonnet 5.5 in both. Stability is now measured between chunks 5 and 6, so it is not comparable with the earlier runs.
+
+| Watch model | Recall | Precision | Decoys | Stability | Watch call p50 / p95 | Summary call p50 | Est. cost per meeting hour |
+|---|---|---|---|---|---|---|---|
+| claude-sonnet-5-5 | 59% | 96% | 0 | 73% | 5.0 s / 9.0 s | 13.0 s | $0.87 + $0.53 = **$1.40** |
+| claude-haiku-5-5 | 59% | 79% | 0 | 75% | 7.8 s / 12.8 s | 14.1 s | $0.08 + $0.54 = **$0.62** |
+
+Per fixture, Sonnet watch: en-crm-vendor 62/100/0, en-payroll-golive 54/92/0, ro-efactura-erp 69/100/0, ro-portal-clinici 50/92/0 (recall/precision/decoys).
+
+Observations: the split brought the watch call well under the 15 s target, and the two prompt rules removed every decoy hit. Recall is unchanged at 59%, one point under target. Haiku was not faster here: it wrote twice as many output tokens (52 k vs 25 k) and was less precise.
+Interpretation: keep Sonnet for the watch call (the default). The remaining recall gap is the 12-flag cap against 12–13 planted items per short fixture, plus a few planted items the model judges minor; a fixture review by Mihaela may move some of those to `acceptable`. One run each, so a few points either way are noise.
+
 ### 2026-10-23 — claude-sonnet-5-5, effort medium, thinking minimal, no speaker names
 
 GitHub Actions run "Eval #3", one run per fixture.

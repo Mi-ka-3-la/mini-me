@@ -23,7 +23,7 @@ describe('watch prompt', () => {
     expect(p).toContain('drop the weakest flags that are not pinned');
     expect(p).toContain('CURRENT WATCH LIST (JSON):\nempty');
     expect(p).toMatch(/EARLIER TRANSCRIPT, for context:\n\[00:02\]/);
-    expect(p).toMatch(/NEW TRANSCRIPT \(look for flags here\):\n\[01:05\]/);
+    expect(p).toMatch(/NEW TRANSCRIPT \(look for flags and questions here\):\n\[01:05\]/);
     expect(SYSTEM_PROMPT).toContain('neutral meeting analyst');
   });
 

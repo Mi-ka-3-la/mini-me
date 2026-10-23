@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import {
   MAX_BODY_BYTES,
+  ANSWER_JSON_SCHEMA,
   SUMMARY_JSON_SCHEMA,
   WATCH_JSON_SCHEMA,
   analyzeRequestSchema,
+  answerOutputSchema,
   summaryOutputSchema,
   watchModelOutputSchema,
   type AnalyzeRequest,
@@ -20,8 +22,23 @@ import {
   type ModelCall,
   type ModelSettings,
 } from '../model.js';
-import { applyWatch, cleanSummary, type PostStats, type WatchModelOutput } from '../postprocess.js';
-import { buildSummaryPrompt, buildWatchPrompt, retrySuffix, SYSTEM_PROMPT } from '../prompt.js';
+import {
+  applyQuestions,
+  applyWatch,
+  cleanAnswer,
+  cleanSummary,
+  type Answer,
+  type DetectedQuestion,
+  type PostStats,
+  type WatchModelOutput,
+} from '../postprocess.js';
+import {
+  buildAnswerPrompt,
+  buildSummaryPrompt,
+  buildWatchPrompt,
+  retrySuffix,
+  SYSTEM_PROMPT,
+} from '../prompt.js';
 import { checkRateLimit } from '../rateLimit.js';
 
 /** Time budget (docs/02 §6 as amended): first attempt 50 s, retry only with ≥ 20 s of 75 s left. */
@@ -35,13 +52,16 @@ export type AnalyzeDeps = {
   watchSettings?: ModelSettings;
 };
 
-type ModelOutput = WatchModelOutput | { tldr: string; topics: Topic[] };
+type ModelOutput = WatchModelOutput | { tldr: string; topics: Topic[] } | Answer;
 
 type Attempt =
   | { ok: true; output: ModelOutput; inputTokens: number; outputTokens: number }
   | { ok: false; problem: string; inputTokens: number; outputTokens: number };
 
-export type AnalyzeResult = { flags: ModelFlag[] } | { tldr: string; topics: Topic[] };
+export type AnalyzeResult =
+  | { flags: ModelFlag[]; questions: DetectedQuestion[] }
+  | { tldr: string; topics: Topic[] }
+  | { answer: Answer };
 
 /** Describes why output was unusable, by shape only, so no content reaches the retry note or logs. */
 function describeIssues(err: z.ZodError): string {
@@ -60,7 +80,11 @@ function parseOutput(
     return { ok: false, problem: 'it was not valid JSON' };
   }
   const parsed =
-    mode === 'watch' ? watchModelOutputSchema.safeParse(raw) : summaryOutputSchema.safeParse(raw);
+    mode === 'watch'
+      ? watchModelOutputSchema.safeParse(raw)
+      : mode === 'answer'
+        ? answerOutputSchema.safeParse(raw)
+        : summaryOutputSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, problem: describeIssues(parsed.error) };
   return { ok: true, output: parsed.data as ModelOutput };
 }
@@ -72,10 +96,11 @@ async function attempt(
   user: string,
   timeoutMs: number,
 ): Promise<Attempt> {
-  const schema = (mode === 'watch' ? WATCH_JSON_SCHEMA : SUMMARY_JSON_SCHEMA) as unknown as Record<
-    string,
-    unknown
-  >;
+  const schema = (mode === 'watch'
+    ? WATCH_JSON_SCHEMA
+    : mode === 'answer'
+      ? ANSWER_JSON_SCHEMA
+      : SUMMARY_JSON_SCHEMA) as unknown as Record<string, unknown>;
   const res = await call({ ...settings, system: SYSTEM_PROMPT, user, timeoutMs, schema });
   const tokens = { inputTokens: res.inputTokens, outputTokens: res.outputTokens };
   if (res.stopReason === 'max_tokens') return { ok: false, problem: 'it was cut off', ...tokens };
@@ -158,12 +183,18 @@ export async function runAnalysis(
 > {
   const call = deps.call ?? anthropicCall;
   const now = deps.now ?? Date.now;
+  // The answer call is read live, so it uses the fast watch settings (ADR-20).
   const settings =
-    req.mode === 'watch'
-      ? (deps.watchSettings ?? deps.settings ?? watchSettingsFromEnv())
-      : (deps.settings ?? settingsFromEnv());
+    req.mode === 'summary'
+      ? (deps.settings ?? settingsFromEnv())
+      : (deps.watchSettings ?? deps.settings ?? watchSettingsFromEnv());
   const started = now();
-  const user = req.mode === 'watch' ? buildWatchPrompt(req) : buildSummaryPrompt(req);
+  const user =
+    req.mode === 'watch'
+      ? buildWatchPrompt(req)
+      : req.mode === 'answer'
+        ? buildAnswerPrompt(req)
+        : buildSummaryPrompt(req);
   let inputTokens = 0;
   let outputTokens = 0;
   let attempts = 0;
@@ -185,8 +216,21 @@ export async function runAnalysis(
       outputTokens += a.outputTokens;
       if (a.ok) {
         if (req.mode === 'watch') {
-          const { flags, stats } = applyWatch(a.output as WatchModelOutput, req);
-          return { ok: true, result: { flags }, stats, attempts, inputTokens, outputTokens };
+          const w = a.output as WatchModelOutput;
+          const { flags, stats } = applyWatch(w, req);
+          const questions = applyQuestions(w, req);
+          return {
+            ok: true,
+            result: { flags, questions },
+            stats,
+            attempts,
+            inputTokens,
+            outputTokens,
+          };
+        }
+        if (req.mode === 'answer') {
+          const answer = cleanAnswer(a.output as Answer);
+          return { ok: true, result: { answer }, stats: null, attempts, inputTokens, outputTokens };
         }
         const result = cleanSummary(a.output as { tldr: string; topics: Topic[] });
         return { ok: true, result, stats: null, attempts, inputTokens, outputTokens };
@@ -234,6 +278,10 @@ export function makeAnalyzeHandler(deps: AnalyzeDeps = {}): Handler {
       return errorResponse(413, 'too_large', 'The request is too large.');
     }
     const parsed = analyzeRequestSchema.safeParse(req.body);
+    if (parsed.success && parsed.data.mode === 'answer' && !parsed.data.question) {
+      log(400, { error: 'bad_request' });
+      return errorResponse(400, 'bad_request', 'An answer request needs a question.');
+    }
     if (!parsed.success) {
       log(400, { error: 'bad_request' });
       return errorResponse(400, 'bad_request', 'The request body is not valid.');
@@ -263,6 +311,8 @@ export function makeAnalyzeHandler(deps: AnalyzeDeps = {}): Handler {
     log(200, {
       ...common,
       ...('topics' in out.result ? { topics: out.result.topics.length } : {}),
+      ...('questions' in out.result ? { questions: out.result.questions.length } : {}),
+      ...('answer' in out.result ? { steps: out.result.answer.steps.length } : {}),
       ...(st
         ? {
             added: st.added,

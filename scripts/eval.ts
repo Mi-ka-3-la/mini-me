@@ -127,6 +127,7 @@ function loadSession(dir: string, exp: Expected, keepSpeakers: boolean): Session
     lastAnalysisAt: null,
     summaryUpToLineIndex: 0,
     lastSummaryAt: null,
+    questions: [],
   };
 }
 
@@ -175,7 +176,7 @@ function mockCall(exp: Expected): ModelCall {
         ask: 'Who owns this?',
         who: '',
       }));
-    return out({ add, update: [], drop: [] });
+    return out({ add, update: [], drop: [], questions: [] });
   };
 }
 
@@ -258,7 +259,7 @@ async function runFixture(
       if ('flags' in out.result) {
         const merged = mergeFlags(session.flags, out.result.flags, Date.now());
         session = { ...session, flags: merged.flags, analyzedUpToLineIndex: cut };
-      } else {
+      } else if ('tldr' in out.result) {
         session = {
           ...session,
           summary: { tldr: out.result.tldr, topics: out.result.topics },

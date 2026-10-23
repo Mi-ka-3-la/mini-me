@@ -4,6 +4,7 @@ import { useAuth } from '../store/auth';
 import { useSession } from '../store/session';
 import { Column } from './Column';
 import { FlagCard } from './FlagCard';
+import { QuestionsView } from './QuestionsView';
 
 type Filter = 'all' | FlagType;
 const FILTERS: { id: Filter; label: string }[] = [
@@ -22,6 +23,8 @@ export function WatchList({ hidden }: { hidden: boolean }) {
   const clearNew = useSession((s) => s.clearNewFlags);
   const canCall = useAuth((s) => !!s.passcode && !s.rejected);
   const [filter, setFilter] = useState<Filter>('all');
+  const [view, setView] = useState<'flags' | 'questions'>('flags');
+  const questionCount = useSession((s) => s.session.questions.length);
   const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
@@ -56,63 +59,89 @@ export function WatchList({ hidden }: { hidden: boolean }) {
       count={live.length ? `${live.length} flagged` : ''}
       hidden={hidden}
       headExtra={
-        <div className="filters" role="group" aria-label="Filter">
-          {FILTERS.map((f) => (
+        <>
+          <div className="view-switch" role="group" aria-label="View">
             <button
-              key={f.id}
               className="chip"
-              aria-pressed={filter === f.id}
-              onClick={() => setFilter(f.id)}
+              aria-pressed={view === 'flags'}
+              onClick={() => setView('flags')}
             >
-              {f.label}
+              Watch list
             </button>
-          ))}
-        </div>
+            <button
+              className="chip"
+              aria-pressed={view === 'questions'}
+              onClick={() => setView('questions')}
+            >
+              Questions asked{questionCount ? ` (${questionCount})` : ''}
+            </button>
+          </div>
+          {view === 'flags' && (
+            <div className="filters" role="group" aria-label="Filter">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  className="chip"
+                  aria-pressed={filter === f.id}
+                  onClick={() => setFilter(f.id)}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       }
     >
-      <div className="scroll">
-        {undo && (
-          <div className="banner info" role="status">
-            Dismissed “{undo.title}”. It will not be raised again.
-            <button
-              className="btn small"
-              onClick={() => {
-                setStatus(undo.id, 'active');
-                setUndo(null);
-              }}
-            >
-              Undo
-            </button>
-          </div>
-        )}
-        {shown.length === 0 ? (
-          <div className="empty">
-            {live.length
-              ? 'Nothing in this category yet.'
-              : canCall
-                ? 'Traps, logic errors and questions worth asking appear here, each with the exact words that triggered it.'
-                : 'Analysis is off on this device. Open Menu → Enter passcode to get the watch list.'}
-          </div>
-        ) : (
-          shown.map((f, i) => (
-            <FlagCard
-              featured={i === 0 && filter === 'all' && f.status !== 'pinned'}
-              key={f.id}
-              flag={f}
-              isNew={newIds.includes(f.id)}
-              onStatus={onStatus(f.id, f.title)}
-            />
-          ))
-        )}
-        {asked.length > 0 && (
-          <details className="asked-section">
-            <summary>Asked ({asked.length})</summary>
-            {asked.map((f) => (
-              <FlagCard key={f.id} flag={f} isNew={false} onStatus={onStatus(f.id, f.title)} />
-            ))}
-          </details>
-        )}
-      </div>
+      {view === 'questions' ? (
+        <div className="scroll">
+          <QuestionsView />
+        </div>
+      ) : (
+        <div className="scroll">
+          {undo && (
+            <div className="banner info" role="status">
+              Dismissed “{undo.title}”. It will not be raised again.
+              <button
+                className="btn small"
+                onClick={() => {
+                  setStatus(undo.id, 'active');
+                  setUndo(null);
+                }}
+              >
+                Undo
+              </button>
+            </div>
+          )}
+          {shown.length === 0 ? (
+            <div className="empty">
+              {live.length
+                ? 'Nothing in this category yet.'
+                : canCall
+                  ? 'Traps, logic errors and questions worth asking appear here, each with the exact words that triggered it.'
+                  : 'Analysis is off on this device. Open Menu → Enter passcode to get the watch list.'}
+            </div>
+          ) : (
+            shown.map((f, i) => (
+              <FlagCard
+                featured={i === 0 && filter === 'all' && f.status !== 'pinned'}
+                key={f.id}
+                flag={f}
+                isNew={newIds.includes(f.id)}
+                onStatus={onStatus(f.id, f.title)}
+              />
+            ))
+          )}
+          {asked.length > 0 && (
+            <details className="asked-section">
+              <summary>Asked ({asked.length})</summary>
+              {asked.map((f) => (
+                <FlagCard key={f.id} flag={f} isNew={false} onStatus={onStatus(f.id, f.title)} />
+              ))}
+            </details>
+          )}
+        </div>
+      )}
     </Column>
   );
 }

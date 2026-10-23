@@ -1,5 +1,5 @@
 import type { AnalyzeRequestInput } from '../../shared/schema';
-import { MAX_CONTEXT } from '../../shared/schema';
+import { MAX_BACKGROUND, MAX_CONTEXT } from '../../shared/schema';
 import { mmss } from '../lib/time';
 import type { Session } from '../store/types';
 
@@ -94,6 +94,7 @@ export function buildWatchRequest(s: Session): AnalyzeRequestInput {
     transcript: w.earlier,
     newTranscript: w.fresh,
     transcriptTrimmed: w.trimmed,
+    knownQuestions: s.questions.slice(-100).map((q) => q.quote),
   };
 }
 
@@ -107,5 +108,25 @@ export function buildSummaryRequest(s: Session): AnalyzeRequestInput {
     transcript: w.earlier,
     newTranscript: w.fresh,
     transcriptTrimmed: w.trimmed,
+  };
+}
+
+/** Recent conversation sent with an answer call: enough to understand the question. */
+export const ANSWER_CONTEXT_CHARS = 3_000;
+
+/** Answer call (ADR-20): the question, the listener's background, and the recent conversation. */
+export function buildAnswerRequest(
+  s: Session,
+  q: { quote: string; question: string },
+  background: string,
+): AnalyzeRequestInput {
+  const w = transcriptWindow(s, s.lines.length, ANSWER_CONTEXT_CHARS);
+  return {
+    mode: 'answer',
+    ...common(s),
+    question: { quote: q.quote.slice(0, 600), question: q.question.slice(0, 600) },
+    background: background.slice(0, MAX_BACKGROUND),
+    transcript: w.earlier,
+    newTranscript: '',
   };
 }

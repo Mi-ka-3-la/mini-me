@@ -53,6 +53,24 @@ const sessionSchema = z.object({
   lastAnalysisAt: z.number().nullable(),
   summaryUpToLineIndex: z.number().default(0),
   lastSummaryAt: z.number().nullable().default(null),
+  questions: z
+    .array(
+      z.object({
+        id: z.string(),
+        t: z.number(),
+        quote: z.string(),
+        question: z.string(),
+        answer: z
+          .object({
+            question: z.string(),
+            trap: z.string(),
+            headline: z.string(),
+            steps: z.array(z.object({ label: z.string(), detail: z.string() })),
+          })
+          .optional(),
+      }),
+    )
+    .default([]),
 });
 
 const STORED_VERSION = 1;
@@ -76,5 +94,8 @@ export function clearSession(): void {
 
 /** A session worth offering to resume: something was said or analysed. */
 export function hasContent(s: Session | null): boolean {
-  return !!s && (s.lines.length > 0 || s.summary !== null || s.flags.length > 0);
+  return (
+    !!s &&
+    (s.lines.length > 0 || s.summary !== null || s.flags.length > 0 || s.questions.length > 0)
+  );
 }

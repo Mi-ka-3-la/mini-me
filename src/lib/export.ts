@@ -61,6 +61,19 @@ export function notesMarkdown(
     if (asked.length) parts.push(`### Asked\n${asked.map(flagBlock).join('\n')}`);
   }
 
+  if (s.questions.length) {
+    const qs = s.questions.map((q) => {
+      const rows = [`- **${q.question}** (${mmss(q.t)})`, `  > “${q.quote}”`];
+      if (q.answer) {
+        if (q.answer.trap) rows.push(`  Trap: ${q.answer.trap}`);
+        rows.push(`  Answer: ${q.answer.headline}`);
+        q.answer.steps.forEach((st, i) => rows.push(`  ${i + 1}. ${st.label} — ${st.detail}`));
+      }
+      return rows.join('\n');
+    });
+    parts.push(`## Questions\n${qs.join('\n')}`);
+  }
+
   if (opts.includeTranscript && s.lines.length) {
     const rows = s.lines.map((_, i) => formatLine(s, i));
     parts.push(`## Transcript\n${rows.join('\n')}`);
