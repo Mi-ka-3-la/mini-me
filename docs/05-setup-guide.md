@@ -38,7 +38,7 @@ Then **Deployments → Redeploy** so the new values are picked up.
 1. Open the production URL that Vercel shows, on your tablet.
 2. Enter the passcode.
 3. Allow the microphone when asked.
-4. On iPad, keep using it in a Safari tab. Speech recognition is reported to fail in web apps started from the Home Screen, so do not use **Add to Home Screen** there until it is tested. Safari's speech recognition needs **Settings → Apple Intelligence & Siri** (or **Siri**) and **Keyboard → Enable Dictation** turned on. On Android, Chrome menu → Add to Home screen is fine.
+4. On iPad, keep using it in a Safari tab. Speech recognition is reported to fail in web apps started from the Home Screen, so do not use **Add to Home Screen** there until it is tested. Safari's speech recognition is reported to need Siri and Dictation turned on in Settings (not verified; if the app says it cannot transcribe on iPad, check these first). On Android, Chrome menu → Add to Home screen is fine.
 5. Test with a video playing from the laptop before using it in a real meeting.
 
 ## Phase 1 — added steps
