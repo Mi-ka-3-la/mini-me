@@ -62,6 +62,7 @@ const sessionSchema = z.object({
         quote: z.string(),
         question: z.string(),
         topic: z.string().optional(),
+        prepared: z.string().optional(),
         answeredQuote: z.string().optional(),
         answeredAt: z.number().optional(),
         answer: z

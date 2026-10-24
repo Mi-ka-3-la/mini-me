@@ -105,7 +105,7 @@ RULES
 9. topic: every flag and question gets the topic it belongs to. Reuse a name from KNOWN TOPICS exactly when it fits; otherwise make a new short name (2–4 words) in the meeting language. Keep topics broad: a meeting usually has 3–6.
 10. segments: where the conversation in NEW TRANSCRIPT moves to a topic, give the time of the first line about it ("mm:ss", copied from the transcript) and the topic name. Give at least one segment when NEW TRANSCRIPT is not empty.
 11. answered: for each question in OPEN QUESTIONS that NEW TRANSCRIPT clearly answers, its id and the exact words of the answer (at most 25 words).
-12. questions: every real question asked in NEW TRANSCRIPT that expects an answer from someone in the meeting (not rhetorical, not small talk, not a request to repeat, and not already in KNOWN QUESTIONS). quote = the exact words of the question, at most 30 words. question = the same question rewritten as one short, clear sentence, in the meeting language. Questions are separate from flags; a question can be both.
+12. questions: every real question asked in NEW TRANSCRIPT that expects an answer from someone in the meeting (not rhetorical, not small talk, not a request to repeat, and not already in KNOWN QUESTIONS). quote = the exact words of the question, at most 30 words. question = the same question rewritten as one short, clear sentence, in the meeting language. Questions are separate from flags; a question can be both. prepared = the id from PREPARED QUESTIONS that asks the same thing (same intent, even if worded differently), else an empty string.
 
 CURRENT WATCH LIST (JSON):
 ${current.length ? JSON.stringify(current) : 'empty'}
@@ -121,6 +121,9 @@ ${req.knownTopics.length ? req.knownTopics.map((t) => `- ${t}`).join('\n') : 'no
 
 OPEN QUESTIONS (not answered yet):
 ${req.openQuestions.length ? JSON.stringify(req.openQuestions) : 'none'}
+
+PREPARED QUESTIONS (answers ready before the meeting):
+${req.preparedQuestions.length ? JSON.stringify(req.preparedQuestions) : 'none'}
 
 KNOWN QUESTIONS (already reported):
 ${req.knownQuestions.length ? req.knownQuestions.map((q) => `- "${q}"`).join('\n') : 'none'}
@@ -191,6 +194,28 @@ FIELDS
 
 RECENT CONVERSATION, for context:
 ${[req.transcript, req.newTranscript].filter((x) => x.trim()).join('\n') || '(none)'}`;
+}
+
+/** Prep call (ADR-25): likely questions for an upcoming meeting, answered in advance. */
+export function buildPrepPrompt(req: AnalyzeRequest): string {
+  return `The listener has a meeting coming up. Predict the questions they are most likely to be asked, and prepare an answer for each, so the answer is ready the moment the question comes. Return JSON that matches the provided schema.
+
+${header(req)}
+
+WHAT THE MEETING IS ABOUT (a job ad, an agenda, notes):
+${req.brief.trim()}
+
+THE LISTENER'S BACKGROUND (answer as this person; use only what is written here, never invent experience, employers, numbers or results):
+${req.background.trim() || 'not given — give strong general answers and say what experience would fit'}
+
+FIELDS
+- questions: 8 to 10 questions, most likely first. Cover what the brief makes likely: the obvious openers, the questions the brief's requirements invite, and the hard or tricky ones (gaps between the brief and the background, terms the listener may define too narrowly, salary or notice, "why us").
+  - question: as the other side would ask it, one sentence.
+  - likely: why this question is likely, in one short sentence tied to the brief.
+  - trap: if the question hides a trap (a false choice, a loaded assumption, a term that is easy to read too narrowly, a test of honesty or priorities), name it in one short sentence and say how to step around it. Otherwise an empty string.
+  - headline: the core of the answer, at most 12 words.
+  - steps: 3 to 5 steps that build the answer, in the order to say them. label = 2 to 5 words. detail = at most 15 words, concrete, drawn from the background where it fits. why = one short sentence: why this step belongs in the answer.
+- askBack: 3 to 5 sharp questions the listener can ask the other side, each tied to something in the brief.`;
 }
 
 /** Appended on the single retry after invalid output. Carries the error shape, never content. */

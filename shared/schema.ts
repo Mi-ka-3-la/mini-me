@@ -5,6 +5,8 @@ export const MAX_CONTEXT = 2000;
 export const MAX_TRANSCRIPT_CHARS = 60_000;
 export const MAX_BODY_BYTES = 200 * 1024;
 export const MAX_BACKGROUND = 4000;
+export const MAX_BRIEF = 12_000;
+export const MAX_PREPARED = 12;
 
 const str = (max: number) => z.string().max(max);
 
@@ -46,6 +48,8 @@ export const detectedQuestionSchema = z.object({
   quote: z.string(),
   question: z.string(),
   topic: z.string().default(''),
+  /** id of the prepared question that asks the same thing, or '' (ADR-25) */
+  prepared: z.string().default(''),
 });
 
 /** "From this moment on, the talk is about this topic" (ADR-21). at = "mm:ss". */
@@ -84,6 +88,24 @@ export const answerOutputSchema = z.object({
   explain: z.array(explainSectionSchema).default([]),
 });
 
+/** One likely question, prepared before the meeting (ADR-25). */
+export const preparedQuestionSchema = z.object({
+  question: z.string(),
+  likely: z.string(),
+  trap: z.string(),
+  headline: z.string(),
+  steps: z.array(answerStepSchema),
+});
+
+/** What the model returns for a prep call (ADR-25). */
+export const prepOutputSchema = z.object({
+  questions: z.array(preparedQuestionSchema),
+  askBack: z.array(z.string()),
+});
+
+/** What /api/analyze returns for a prep call. */
+export const prepResponseSchema = z.object({ prep: prepOutputSchema });
+
 /** What the model returns for a summary call (ADR-19). */
 export const summaryOutputSchema = z.object({
   tldr: z.string(),
@@ -100,6 +122,7 @@ export const watchResponseSchema = z.object({
         quote: z.string(),
         question: z.string(),
         topic: z.string().default(''),
+        prepared: z.string().default(''),
       }),
     )
     .default([]),
@@ -110,7 +133,7 @@ export const watchResponseSchema = z.object({
 
 /** POST /api/analyze body (docs/02 §6, ADR-19). */
 export const analyzeRequestSchema = z.object({
-  mode: z.enum(['watch', 'summary', 'answer']),
+  mode: z.enum(['watch', 'summary', 'answer', 'prep']),
   language: z.enum(['en-US', 'ro-RO']),
   context: str(MAX_CONTEXT).default(''),
   speakers: z.record(z.string().max(80), z.string().max(80)).default({}),
@@ -148,6 +171,13 @@ export const analyzeRequestSchema = z.object({
     .nullable()
     .default(null),
   background: str(MAX_BACKGROUND).default(''),
+  /** Prep mode: what the meeting is about, e.g. a job ad or an agenda (ADR-25). */
+  brief: str(MAX_BRIEF).default(''),
+  /** Watch mode: questions prepared before the meeting, so a live question can be matched. */
+  preparedQuestions: z
+    .array(z.object({ id: str(40), question: str(600) }))
+    .max(MAX_PREPARED)
+    .default([]),
 });
 
 export type AnalyzeRequest = z.infer<typeof analyzeRequestSchema>;
@@ -177,11 +207,12 @@ export const WATCH_JSON_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['quote', 'question', 'topic'],
+        required: ['quote', 'question', 'topic', 'prepared'],
         properties: {
           quote: { type: 'string' },
           question: { type: 'string' },
           topic: { type: 'string' },
+          prepared: { type: 'string' },
         },
       },
     },
@@ -286,5 +317,36 @@ export const ANSWER_JSON_SCHEMA = {
         },
       },
     },
+  },
+} as const;
+
+const STEP_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['label', 'detail', 'why'],
+  properties: { label: { type: 'string' }, detail: { type: 'string' }, why: { type: 'string' } },
+} as const;
+
+export const PREP_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['questions', 'askBack'],
+  properties: {
+    questions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['question', 'likely', 'trap', 'headline', 'steps'],
+        properties: {
+          question: { type: 'string' },
+          likely: { type: 'string' },
+          trap: { type: 'string' },
+          headline: { type: 'string' },
+          steps: { type: 'array', items: STEP_SCHEMA },
+        },
+      },
+    },
+    askBack: { type: 'array', items: { type: 'string' } },
   },
 } as const;

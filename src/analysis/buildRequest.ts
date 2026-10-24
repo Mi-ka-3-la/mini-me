@@ -1,7 +1,7 @@
 import type { AnalyzeRequestInput } from '../../shared/schema';
-import { MAX_BACKGROUND, MAX_CONTEXT } from '../../shared/schema';
+import { MAX_BACKGROUND, MAX_BRIEF, MAX_CONTEXT, MAX_PREPARED } from '../../shared/schema';
 import { mmss } from '../lib/time';
-import type { Session } from '../store/types';
+import type { Prep, Session } from '../store/types';
 
 export const WINDOW_MS = 15 * 60_000;
 export const WINDOW_CHARS = 12_000;
@@ -67,7 +67,7 @@ function common(s: Session) {
 }
 
 /** Watch call: changes to the watch list since the last watch call (ADR-19). */
-export function buildWatchRequest(s: Session): AnalyzeRequestInput {
+export function buildWatchRequest(s: Session, prep: Prep | null = null): AnalyzeRequestInput {
   const live = s.flags.filter((f) => f.status === 'active' || f.status === 'pinned');
   const w = transcriptWindow(s, s.analyzedUpToLineIndex, WATCH_CONTEXT_CHARS);
   return {
@@ -101,6 +101,9 @@ export function buildWatchRequest(s: Session): AnalyzeRequestInput {
       .slice(-30)
       .map((q) => ({ id: q.id, question: q.question })),
     knownTopics: s.topics.slice(0, 40),
+    preparedQuestions: (prep?.questions ?? [])
+      .slice(0, MAX_PREPARED)
+      .map((p) => ({ id: p.id, question: p.question.slice(0, 600) })),
   };
 }
 
@@ -135,5 +138,22 @@ export function buildAnswerRequest(
     background: background.slice(0, MAX_BACKGROUND),
     transcript: w.earlier,
     newTranscript: '',
+  };
+}
+
+/** Prep call (ADR-25): the brief and the background, before the meeting. */
+export function buildPrepRequest(
+  language: Session['language'],
+  context: string,
+  brief: string,
+  background: string,
+): AnalyzeRequestInput {
+  return {
+    mode: 'prep',
+    language,
+    context: context.slice(0, MAX_CONTEXT),
+    brief: brief.slice(0, MAX_BRIEF),
+    background: background.slice(0, MAX_BACKGROUND),
+    transcript: '',
   };
 }

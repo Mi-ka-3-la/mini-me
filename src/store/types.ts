@@ -45,6 +45,8 @@ export type Question = {
   answer?: Answer;
   /** Topic thread (ADR-21) */
   topic?: string;
+  /** id of the prepared question it matched, so its answer was ready at once (ADR-25) */
+  prepared?: string;
   /** Answered in the conversation itself (ADR-21) */
   answeredQuote?: string;
   answeredAt?: number;
@@ -76,4 +78,22 @@ export type Session = {
   segments: Segment[];
   /** epoch ms of the last summary call */
   lastSummaryAt: number | null;
+};
+
+/** A likely question answered before the meeting (ADR-25). */
+export type PreparedQuestion = {
+  id: string;
+  question: string;
+  likely: string;
+  trap: string;
+  headline: string;
+  steps: { label: string; detail: string; why?: string }[];
+};
+
+/** Preparation for an upcoming meeting. Kept on this device, outside the session (ADR-25). */
+export type Prep = {
+  brief: string;
+  at: number;
+  questions: PreparedQuestion[];
+  askBack: string[];
 };
