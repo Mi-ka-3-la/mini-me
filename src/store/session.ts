@@ -1,10 +1,11 @@
 import { create } from 'zustand';
+import { z } from 'zod';
 import type { Language } from '../../shared/types';
 import { newId } from '../lib/ids';
 import { withTopics } from '../lib/topics';
 
 export { withTopics };
-import { KEYS, readString, writeString } from '../lib/storage';
+import { KEYS, readJson, readString, remove, writeString } from '../lib/storage';
 import { clearSession, hasContent, loadSession, saveSession } from './persist';
 import type {
   Answer,
@@ -12,6 +13,7 @@ import type {
   Gap,
   Interim,
   Line,
+  Prep,
   Question,
   Segment,
   Session,
@@ -31,6 +33,10 @@ type Runtime = {
   analysis: AnalysisRuntime;
   /** The listener's background for answers (ADR-20). Kept on this device, not in the session. */
   background: string;
+  /** Likely questions answered before the meeting (ADR-25). Kept on this device. */
+  prep: Prep | null;
+  preparing: boolean;
+  prepError: string | null;
   /** Question being answered right now, and the last answer error. */
   answeringId: string | null;
   answerError: { id: string; message: string } | null;
@@ -95,6 +101,8 @@ type Actions = {
     at: number;
   }) => void;
   setBackground: (b: string) => void;
+  setPrep: (p: Prep | null) => void;
+  setPreparing: (preparing: boolean, error?: string | null) => void;
   addQuestions: (r: { sessionId: string; questions: Omit<Question, 't'>[]; at: number }) => void;
   setAnswering: (id: string | null, error?: { id: string; message: string } | null) => void;
   setAnswer: (r: { sessionId: string; id: string; answer: Answer }) => void;
@@ -136,6 +144,29 @@ function speakerIdFor(label: string): string {
 
 export const DEFAULT_MAX_CALLS = 150;
 
+const prepSchema = z.object({
+  brief: z.string(),
+  at: z.number(),
+  questions: z.array(
+    z.object({
+      id: z.string(),
+      question: z.string(),
+      likely: z.string(),
+      trap: z.string(),
+      headline: z.string(),
+      steps: z.array(
+        z.object({ label: z.string(), detail: z.string(), why: z.string().optional() }),
+      ),
+    }),
+  ),
+  askBack: z.array(z.string()),
+});
+
+function loadPrep(): Prep | null {
+  const parsed = prepSchema.safeParse(readJson(KEYS.prep));
+  return parsed.success ? parsed.data : null;
+}
+
 const freshAnalysis = (maxCalls = DEFAULT_MAX_CALLS): AnalysisRuntime => ({
   running: false,
   summaryRunning: false,
@@ -160,6 +191,9 @@ export const useSession = create<SessionState>((set, get) => ({
   pendingResume: resumable,
   analysis: freshAnalysis(),
   background: readString(KEYS.background) ?? '',
+  prep: loadPrep(),
+  preparing: false,
+  prepError: null,
   answeringId: null,
   answerError: null,
 
@@ -317,6 +351,12 @@ export const useSession = create<SessionState>((set, get) => ({
     writeString(KEYS.background, background);
     set({ background });
   },
+  setPrep: (prep) => {
+    if (prep) writeString(KEYS.prep, JSON.stringify(prep));
+    else remove(KEYS.prep);
+    set({ prep, prepError: null });
+  },
+  setPreparing: (preparing, prepError = null) => set({ preparing, prepError }),
   addQuestions: ({ sessionId, questions, at }) =>
     set((st) => {
       if (st.session.id !== sessionId || questions.length === 0) return {};
@@ -324,6 +364,19 @@ export const useSession = create<SessionState>((set, get) => ({
       questions = questions.filter((q) => !known.has(q.id));
       if (questions.length === 0) return {};
       const t = Math.max(0, at - st.session.startedAt);
+      // A question that matches a prepared one gets its answer at once (ADR-25).
+      questions = questions.map((q) => {
+        const p = q.prepared ? st.prep?.questions.find((x) => x.id === q.prepared) : undefined;
+        if (!p || q.answer) return q.prepared && !p ? { ...q, prepared: undefined } : q;
+        const answer: Answer = {
+          question: p.question,
+          trap: p.trap,
+          headline: p.headline,
+          steps: p.steps,
+          explain: [],
+        };
+        return { ...q, answer };
+      });
       return {
         session: {
           ...st.session,

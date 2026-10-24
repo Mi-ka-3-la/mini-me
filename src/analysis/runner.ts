@@ -1,7 +1,12 @@
 import { apiFetch } from '../lib/api';
 import { useAuth } from '../store/auth';
 import { useSession, type AnalysisMode } from '../store/session';
-import { buildAnswerRequest, buildSummaryRequest, buildWatchRequest } from './buildRequest';
+import {
+  buildAnswerRequest,
+  buildPrepRequest,
+  buildSummaryRequest,
+  buildWatchRequest,
+} from './buildRequest';
 import { callAnalyze, errorText } from './client';
 import { mergeFlags } from './mergeFlags';
 import { backoffMs, countWords, decide, decideSummary, looksLikeQuestion } from './scheduler';
@@ -130,7 +135,7 @@ export class AnalysisRunner {
     if (!passcode || busy) return;
     const s = store.session;
     const prevIndex = mode === 'watch' ? s.analyzedUpToLineIndex : s.summaryUpToLineIndex;
-    const body = mode === 'watch' ? buildWatchRequest(s) : buildSummaryRequest(s);
+    const body = mode === 'watch' ? buildWatchRequest(s, store.prep) : buildSummaryRequest(s);
     store.beginAnalysis(mode, s.lines.length);
     const ctl = new AbortController();
     this.ctls.add(ctl);
@@ -201,4 +206,33 @@ export async function answerQuestion(id: string): Promise<void> {
     id,
     message: res.ok ? 'The answer came back malformed. Try again.' : errorText(res.error, 0),
   });
+}
+
+/** Prepares likely questions and answers before a meeting (ADR-25). One call, about a minute. */
+export async function prepareMeeting(brief: string): Promise<void> {
+  const st = useSession.getState();
+  const passcode = useAuth.getState().passcode;
+  if (!passcode || st.preparing || !brief.trim()) return;
+  st.setPreparing(true);
+  const res = await callAnalyze(
+    buildPrepRequest(st.session.language, st.session.context, brief, st.background),
+    passcode,
+    new AbortController().signal,
+  );
+  const cur = useSession.getState();
+  if (res.ok && 'prep' in res.data) {
+    cur.setPrep({
+      brief,
+      at: Date.now(),
+      questions: res.data.prep.questions.map((q, i) => ({ ...q, id: `p-${i + 1}` })),
+      askBack: res.data.prep.askBack,
+    });
+    cur.setPreparing(false);
+    return;
+  }
+  if (!res.ok && res.error.code === 'unauthorized') useAuth.getState().markRejected();
+  cur.setPreparing(
+    false,
+    res.ok ? 'The preparation came back malformed. Try again.' : errorText(res.error, 0),
+  );
 }

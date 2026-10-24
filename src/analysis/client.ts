@@ -1,10 +1,11 @@
 import {
   answerResponseSchema,
+  prepResponseSchema,
   summaryOutputSchema,
   watchResponseSchema,
 } from '../../shared/schema';
 import type { ModelFlag, Topic } from '../../shared/types';
-import type { Answer } from '../store/types';
+import type { Answer, PreparedQuestion } from '../store/types';
 import type { AnalyzeRequestInput } from '../../shared/schema';
 import { apiFetch, type ApiError } from '../lib/api';
 
@@ -14,12 +15,18 @@ export const CLIENT_TIMEOUT_MS = 95_000;
 export type AnalyzeData =
   | {
       flags: ModelFlag[];
-      questions: { id: string; quote: string; question: string; topic: string }[];
+      questions: { id: string; quote: string; question: string; topic: string; prepared: string }[];
       segments: { t: number; topic: string }[];
       answered: { id: string; quote: string }[];
     }
   | { tldr: string; topics: Topic[] }
-  | { answer: Answer };
+  | { answer: Answer }
+  | {
+      prep: {
+        questions: Omit<PreparedQuestion, 'id'>[];
+        askBack: string[];
+      };
+    };
 export type AnalyzeResult = { ok: true; data: AnalyzeData } | { ok: false; error: ApiError };
 
 export async function callAnalyze(
@@ -49,7 +56,9 @@ export async function callAnalyze(
         ? watchResponseSchema.safeParse(res.data)
         : body.mode === 'answer'
           ? answerResponseSchema.safeParse(res.data)
-          : summaryOutputSchema.safeParse(res.data);
+          : body.mode === 'prep'
+            ? prepResponseSchema.safeParse(res.data)
+            : summaryOutputSchema.safeParse(res.data);
     if (!parsed.success) {
       return { ok: false, error: { status: 200, code: 'invalid_output', message: 'Malformed.' } };
     }

@@ -33,12 +33,29 @@ export type WatchModelOutput = {
   add: Omit<ModelFlag, 'id'>[];
   update: ModelFlag[];
   drop: string[];
-  questions?: { quote: string; question: string; topic?: string }[];
+  questions?: { quote: string; question: string; topic?: string; prepared?: string }[];
   segments?: { at: string; topic: string }[];
   answered?: { id: string; quote: string }[];
 };
 
-export type DetectedQuestion = { id: string; quote: string; question: string; topic: string };
+export type DetectedQuestion = {
+  id: string;
+  quote: string;
+  question: string;
+  topic: string;
+  prepared: string;
+};
+
+export type Prep = {
+  questions: {
+    question: string;
+    likely: string;
+    trap: string;
+    headline: string;
+    steps: { label: string; detail: string; why: string }[];
+  }[];
+  askBack: string[];
+};
 
 export type Answer = {
   question: string;
@@ -172,6 +189,7 @@ export function applyQuestions(
   makeId: () => string = () => newFlagId().replace(/^f-/, 'q-'),
 ): DetectedQuestion[] {
   const groundTokens = tokens(`${req.transcript}\n${req.newTranscript}`);
+  const preparedIds = new Set(req.preparedQuestions.map((p) => p.id));
   const result: DetectedQuestion[] = [];
   for (const q of out.questions ?? []) {
     const quote = clean(q.quote).replace(/^["“„']+|["”']+$/g, '');
@@ -179,7 +197,14 @@ export function applyQuestions(
     if (!quote || !question || !quoteFound(quote, groundTokens)) continue;
     if (req.knownQuestions.some((k) => sameQuote(k, quote))) continue;
     if (result.some((r) => sameQuote(r.quote, quote))) continue;
-    result.push({ id: makeId(), quote, question, topic: clean(q.topic ?? '') });
+    const prepared = (q.prepared ?? '').trim();
+    result.push({
+      id: makeId(),
+      quote,
+      question,
+      topic: clean(q.topic ?? ''),
+      prepared: preparedIds.has(prepared) ? prepared : '',
+    });
   }
   return result.slice(0, 5);
 }
@@ -250,5 +275,24 @@ export function cleanSummary(out: { tldr: string; topics: Topic[] }): {
       actions: t.actions.map(clean).filter(Boolean),
       open: t.open.map(clean).filter(Boolean),
     })),
+  };
+}
+
+export function cleanPrep(p: Prep): Prep {
+  return {
+    questions: p.questions
+      .map((q) => ({
+        question: clean(q.question),
+        likely: clean(q.likely),
+        trap: clean(q.trap),
+        headline: clean(q.headline),
+        steps: q.steps
+          .map((st) => ({ label: clean(st.label), detail: clean(st.detail), why: clean(st.why) }))
+          .filter((st) => st.label)
+          .slice(0, 6),
+      }))
+      .filter((q) => q.question && q.headline)
+      .slice(0, 12),
+    askBack: p.askBack.map(clean).filter(Boolean).slice(0, 6),
   };
 }

@@ -9,6 +9,7 @@ export const KEYS = {
   passcodeSkipped: 'mc.passcode.skipped',
   theme: 'mc.theme',
   background: 'mc.background',
+  prep: 'mc.prep',
 } as const;
 
 export function readString(key: string): string | null {

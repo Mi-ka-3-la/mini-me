@@ -2,10 +2,12 @@ import { z } from 'zod';
 import {
   MAX_BODY_BYTES,
   ANSWER_JSON_SCHEMA,
+  PREP_JSON_SCHEMA,
   SUMMARY_JSON_SCHEMA,
   WATCH_JSON_SCHEMA,
   analyzeRequestSchema,
   answerOutputSchema,
+  prepOutputSchema,
   summaryOutputSchema,
   watchModelOutputSchema,
   type AnalyzeRequest,
@@ -27,14 +29,17 @@ import {
   applyThreads,
   applyWatch,
   cleanAnswer,
+  cleanPrep,
   cleanSummary,
   type Answer,
   type DetectedQuestion,
   type PostStats,
+  type Prep,
   type WatchModelOutput,
 } from '../postprocess.js';
 import {
   buildAnswerPrompt,
+  buildPrepPrompt,
   buildSummaryPrompt,
   buildWatchPrompt,
   retrySuffix,
@@ -44,6 +49,8 @@ import { checkRateLimit } from '../rateLimit.js';
 
 /** Time budget (docs/02 §6 as amended): first attempt 50 s, retry only with ≥ 20 s of 75 s left. */
 export const BUDGET = { totalMs: 75_000, firstMs: 50_000, minRetryMs: 20_000 };
+/** Prep writes 8–10 answers at once, before the meeting: one long attempt, no retry (ADR-25). */
+export const PREP_BUDGET = { totalMs: 85_000, firstMs: 82_000, minRetryMs: 20_000 };
 
 export type AnalyzeDeps = {
   call?: ModelCall;
@@ -53,7 +60,7 @@ export type AnalyzeDeps = {
   watchSettings?: ModelSettings;
 };
 
-type ModelOutput = WatchModelOutput | { tldr: string; topics: Topic[] } | Answer;
+type ModelOutput = WatchModelOutput | { tldr: string; topics: Topic[] } | Answer | Prep;
 
 type Attempt =
   | { ok: true; output: ModelOutput; inputTokens: number; outputTokens: number }
@@ -67,7 +74,8 @@ export type AnalyzeResult =
       answered: { id: string; quote: string }[];
     }
   | { tldr: string; topics: Topic[] }
-  | { answer: Answer };
+  | { answer: Answer }
+  | { prep: Prep };
 
 /** Describes why output was unusable, by shape only, so no content reaches the retry note or logs. */
 function describeIssues(err: z.ZodError): string {
@@ -90,7 +98,9 @@ function parseOutput(
       ? watchModelOutputSchema.safeParse(raw)
       : mode === 'answer'
         ? answerOutputSchema.safeParse(raw)
-        : summaryOutputSchema.safeParse(raw);
+        : mode === 'prep'
+          ? prepOutputSchema.safeParse(raw)
+          : summaryOutputSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, problem: describeIssues(parsed.error) };
   return { ok: true, output: parsed.data as ModelOutput };
 }
@@ -106,7 +116,9 @@ async function attempt(
     ? WATCH_JSON_SCHEMA
     : mode === 'answer'
       ? ANSWER_JSON_SCHEMA
-      : SUMMARY_JSON_SCHEMA) as unknown as Record<string, unknown>;
+      : mode === 'prep'
+        ? PREP_JSON_SCHEMA
+        : SUMMARY_JSON_SCHEMA) as unknown as Record<string, unknown>;
   const res = await call({ ...settings, system: SYSTEM_PROMPT, user, timeoutMs, schema });
   const tokens = { inputTokens: res.inputTokens, outputTokens: res.outputTokens };
   if (res.stopReason === 'max_tokens') return { ok: false, problem: 'it was cut off', ...tokens };
@@ -191,7 +203,7 @@ export async function runAnalysis(
   const now = deps.now ?? Date.now;
   // The answer call is read live, so it uses the fast watch settings (ADR-20).
   const settings =
-    req.mode === 'summary'
+    req.mode === 'summary' || req.mode === 'prep'
       ? (deps.settings ?? settingsFromEnv())
       : (deps.watchSettings ?? deps.settings ?? watchSettingsFromEnv());
   const started = now();
@@ -200,7 +212,9 @@ export async function runAnalysis(
       ? buildWatchPrompt(req)
       : req.mode === 'answer'
         ? buildAnswerPrompt(req)
-        : buildSummaryPrompt(req);
+        : req.mode === 'prep'
+          ? buildPrepPrompt(req)
+          : buildSummaryPrompt(req);
   let inputTokens = 0;
   let outputTokens = 0;
   let attempts = 0;
@@ -208,15 +222,16 @@ export async function runAnalysis(
 
   try {
     for (const isRetry of [false, true]) {
-      const left = BUDGET.totalMs - (now() - started);
-      if (isRetry && left < BUDGET.minRetryMs) break;
+      const budget = req.mode === 'prep' ? PREP_BUDGET : BUDGET;
+      const left = budget.totalMs - (now() - started);
+      if (isRetry && left < budget.minRetryMs) break;
       attempts++;
       const a = await attempt(
         call,
         settings,
         req.mode,
         isRetry ? user + retrySuffix(problem) : user,
-        isRetry ? left : BUDGET.firstMs,
+        isRetry ? left : budget.firstMs,
       );
       inputTokens += a.inputTokens;
       outputTokens += a.outputTokens;
@@ -234,6 +249,10 @@ export async function runAnalysis(
             inputTokens,
             outputTokens,
           };
+        }
+        if (req.mode === 'prep') {
+          const prep = cleanPrep(a.output as Prep);
+          return { ok: true, result: { prep }, stats: null, attempts, inputTokens, outputTokens };
         }
         if (req.mode === 'answer') {
           const answer = cleanAnswer(a.output as Answer);
@@ -285,6 +304,9 @@ export function makeAnalyzeHandler(deps: AnalyzeDeps = {}): Handler {
       return errorResponse(413, 'too_large', 'The request is too large.');
     }
     const parsed = analyzeRequestSchema.safeParse(req.body);
+    if (parsed.success && parsed.data.mode === 'prep' && !parsed.data.brief.trim()) {
+      return errorResponse(400, 'bad_request', 'A prep request needs a brief.');
+    }
     if (parsed.success && parsed.data.mode === 'answer' && !parsed.data.question) {
       log(400, { error: 'bad_request' });
       return errorResponse(400, 'bad_request', 'An answer request needs a question.');

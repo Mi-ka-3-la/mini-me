@@ -3,12 +3,10 @@ import { mmss } from '../lib/time';
 import { TopicChip } from './TopicChip';
 import { useAuth } from '../store/auth';
 import { useSession } from '../store/session';
-import type { Question } from '../store/types';
+import type { Answer } from '../store/types';
 
 /** One answer, laid out as a chain of short steps that can be read at a glance (ADR-20). */
-function AnswerPlan({ q }: { q: Question }) {
-  const a = q.answer;
-  if (!a) return null;
+export function AnswerPlan({ a }: { a: Answer }) {
   return (
     <div className="answer" aria-label="Suggested answer">
       {a.trap && (
@@ -53,6 +51,7 @@ export function QuestionsView() {
   const answeringId = useSession((s) => s.answeringId);
   const answerError = useSession((s) => s.answerError);
   const background = useSession((s) => s.background);
+  const prepCount = useSession((s) => s.prep?.questions.length ?? 0);
   const canCall = useAuth((s) => !!s.passcode && !s.rejected);
   const list = [...questions].reverse();
 
@@ -61,6 +60,12 @@ export function QuestionsView() {
       <div className="empty">
         Questions asked in the meeting appear here, rewritten clearly. Tap <b>Answer</b> to get a
         short plan to answer it, with any trap in the question named.
+        {prepCount > 0 && (
+          <p>
+            {prepCount} prepared answers are ready. When one of those questions is asked, its answer
+            shows here at once.
+          </p>
+        )}
         {!background.trim() && (
           <p>
             Add a few lines about yourself in “My background” above, so answers use your experience.
@@ -83,6 +88,7 @@ export function QuestionsView() {
               <span className={`q-status ${q.answeredQuote ? 'answered' : 'open'}`}>
                 {q.answeredQuote ? 'Answered' : 'Open'}
               </span>
+              {q.prepared && <span className="q-status prepared">Prepared</span>}
             </div>
             <TopicChip name={q.topic} />
           </div>
@@ -95,7 +101,23 @@ export function QuestionsView() {
             </div>
           )}
           {q.answer ? (
-            <AnswerPlan q={q} />
+            <>
+              <AnswerPlan a={q.answer} />
+              {q.prepared && !q.answer.explain?.length && (
+                <div className="row">
+                  <button
+                    className="btn small"
+                    disabled={!canCall || answeringId !== null}
+                    onClick={() => void answerQuestion(q.id)}
+                  >
+                    {answeringId === q.id ? 'Explaining…' : 'Explain it'}
+                  </button>
+                  <span className="hint">
+                    Answers it again with this conversation and “Understand it”.
+                  </span>
+                </div>
+              )}
+            </>
           ) : (
             <div className="row">
               <button
